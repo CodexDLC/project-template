@@ -1,0 +1,1 @@
+# Script to generate project tree structure
