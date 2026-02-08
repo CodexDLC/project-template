@@ -29,7 +29,7 @@ class Settings(CommonSettings):
 
     # --- Database ---
     DATABASE_URL: str
-    AUTO_MIGRATE: bool = True
+    DB_SCHEMA: str = "fastapi_app"  # PostgreSQL schema for table isolation
 
     # --- Storage ---
     # Используем ROOT_DIR из shared конфига для построения путей

@@ -57,7 +57,7 @@ jobs:
 {{EXPORT_IMAGES}}
 
             docker compose -f deploy/docker-compose.prod.yml pull
+{{MIGRATE_STEP}}
             docker compose -f deploy/docker-compose.prod.yml up -d --remove-orphans --wait
-{{POST_DEPLOY}}
 
             docker image prune -f

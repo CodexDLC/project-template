@@ -1,4 +1,4 @@
-# backend/alembic/env.py
+# database/migrations/env.py
 import asyncio
 from logging.config import fileConfig
 
@@ -26,6 +26,9 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 # SQLAlchemy metadata (now contains all tables)
 target_metadata = Base.metadata
 
+# Schema isolation: alembic_version table lives in the same schema as our tables
+DB_SCHEMA = settings.DB_SCHEMA  # default: "fastapi_app"
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
@@ -35,6 +38,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table_schema=DB_SCHEMA,
+        include_schemas=True,
     )
 
     with context.begin_transaction():
@@ -42,7 +47,12 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table_schema=DB_SCHEMA,
+        include_schemas=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

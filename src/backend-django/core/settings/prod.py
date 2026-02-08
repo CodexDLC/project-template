@@ -34,6 +34,13 @@ DATABASES = {
         "PASSWORD": os.environ.get("DB_PASSWORD", ""),
         "HOST": os.environ.get("DB_HOST", "postgres"),
         "PORT": os.environ.get("DB_PORT", "5432"),
+        "OPTIONS": {
+            # Schema isolation: Django only sees django_app + public schemas.
+            # Migrations create tables in django_app schema.
+            # This allows sharing one DB (e.g. Neon) with FastAPI/Bot
+            # without table name conflicts.
+            "options": f"-c search_path={os.environ.get('DB_SCHEMA', 'django_app')},public",
+        },
     }
 }
 

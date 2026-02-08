@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from .core.config import settings
-from .core.database import async_engine, run_alembic_migrations
+from .core.database import async_engine
 from .core.exceptions import BaseAPIException, api_exception_handler
 from .core.logger import setup_loguru
 from .core.schemas.error import ErrorResponse
@@ -26,11 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         logger.info("🔒 Production mode: Swagger UI is DISABLED")
 
-    if settings.AUTO_MIGRATE:
-        logger.info("Running database migrations (AUTO_MIGRATE=True)...")
-        await run_alembic_migrations()
-    else:
-        logger.warning("⚠️ AUTO_MIGRATE=False: Skipping migrations. Run 'alembic upgrade head' manually.")
+    # Migrations are handled via CLI or CD pipeline, not at startup.
+    # This avoids race conditions when running multiple replicas.
+    # Run manually: alembic upgrade head
+    # Or in CD:     docker run --rm app alembic upgrade head
+    logger.info("💡 Migrations: run 'alembic upgrade head' before deploying.")
 
     yield
 

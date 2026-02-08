@@ -15,8 +15,14 @@ from .config import BASE_DIR, settings
 
 # --- Connection Configuration ---
 
+# Schema isolation: FastAPI uses its own schema (default: fastapi_app).
+# This allows sharing one DB (e.g. Neon) with Django/Bot
+# without table name conflicts.
 connect_args: dict[str, Any] = {
     "prepared_statement_cache_size": 0,
+    "server_settings": {
+        "search_path": f"{settings.DB_SCHEMA},public",
+    },
 }
 
 db_url = settings.DATABASE_URL
@@ -78,39 +84,5 @@ async def create_db_tables() -> None:
         logger.error(f"Database | action=create_tables status=failed error={db_exc}")
 
 
-async def run_alembic_migrations() -> None:
-    """
-    Run Alembic migrations programmatically using Alembic API.
-    """
-    import asyncio
-
-    from alembic import command
-    from alembic.config import Config
-
-    def _run_sync_migrations() -> None:
-        """Synchronous wrapper for Alembic command (runs in thread pool)"""
-        try:
-            # Path to alembic.ini using BASE_DIR for reliability
-            alembic_cfg_path = BASE_DIR / "backend" / "alembic.ini"
-
-            if not alembic_cfg_path.exists():
-                logger.warning("Database | action=run_migrations status=skipped reason=alembic_ini_not_found")
-                return
-
-            # Create Alembic config
-            alembic_cfg = Config(str(alembic_cfg_path))
-
-            # Run migrations (synchronously)
-            command.upgrade(alembic_cfg, "head")
-
-            logger.info("Database | action=run_migrations status=success")
-
-        except Exception as exc:
-            logger.error(f"Database | action=run_migrations status=failed error={exc}")
-            raise
-
-    # Run synchronous function in thread pool
-    await asyncio.to_thread(_run_sync_migrations)
-
 # Explicitly export Base for mypy
-__all__ = ["Base", "get_db", "create_db_tables", "run_alembic_migrations", "async_engine"]
+__all__ = ["Base", "get_db", "create_db_tables", "async_engine"]

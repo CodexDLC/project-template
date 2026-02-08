@@ -189,7 +189,7 @@ class DockerAction:
         # cd-release.yml — build+push для каждого образа
         build_push = ""
         export_images = ""
-        post_deploy = ""
+        migrate_step = ""
 
         if ctx.backend == "fastapi":
             build_push += dedent("""\
@@ -211,7 +211,14 @@ class DockerAction:
             export_images += dedent("""\
                         export DOCKER_IMAGE_BACKEND=ghcr.io/$REPO_LOWER:latest
                         export DOCKER_IMAGE_NGINX=ghcr.io/$REPO_LOWER-nginx:latest""")
-            post_deploy += "            docker compose -f deploy/docker-compose.prod.yml exec -T backend alembic upgrade head"
+            # Run Alembic migrations BEFORE starting services (avoids race condition)
+            migrate_step = "            docker compose -f deploy/docker-compose.prod.yml run --rm -T backend alembic upgrade head"
+
+        if ctx.backend == "django":
+            # Django: collectstatic + migrate before starting
+            migrate_step = dedent("""\
+                        docker compose -f deploy/docker-compose.prod.yml run --rm -T backend python manage.py migrate --noinput
+                        docker compose -f deploy/docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput""")
 
         if ctx.include_bot:
             build_push += dedent("""\
@@ -240,7 +247,7 @@ class DockerAction:
             **variables,
             "{{BUILD_PUSH_STEPS}}": build_push,
             "{{EXPORT_IMAGES}}": export_images,
-            "{{POST_DEPLOY}}": post_deploy,
+            "{{MIGRATE_STEP}}": migrate_step,
         }
         self._render_template(
             RESOURCES / "github" / "cd-release.yml.tpl",
