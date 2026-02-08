@@ -10,16 +10,17 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from loguru import logger as log
 
-from src.telegram_bot.resources.states import GARBAGE_TEXT_STATES
+from src.telegram_bot.core.garbage_collector import IsGarbageStateFilter
 
 router = Router(name="common_fsm_router")
 
 
-@router.message(F.text, *GARBAGE_TEXT_STATES)
+@router.message(F.text, IsGarbageStateFilter())
 async def delete_garbage_text(m: Message, state: FSMContext):
     """
     Удаляет нежелательные текстовые сообщения в состояниях,
     где ожидается нажатие на inline-кнопку.
+    Стейты определяются динамически через GarbageStateRegistry.
     """
     user_id = m.from_user.id if m.from_user else "N/A"
     current_state = await state.get_state()

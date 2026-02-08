@@ -1,8 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from src.telegram_bot.services.base.view_dto import UnifiedViewDTO
-from src.shared.enums.domain_enums import CoreDomain
-from src.shared.schemas.response import CoreCompositeResponseDTO, CoreResponseDTO
+from src.shared.schemas.response import CoreResponseDTO
 
 if TYPE_CHECKING:
     from src.telegram_bot.services.director.director import Director
@@ -11,6 +10,9 @@ if TYPE_CHECKING:
 class BaseBotOrchestrator:
     """
     Базовый класс оркестратора.
+    Определяет контракт жизненного цикла фичи:
+    - handle_entry(user_id, payload): Инициализация (загрузка данных) при входе.
+    - render(payload): Отрисовка готовых данных.
     """
 
     def __init__(self, expected_state: str | None):
@@ -26,54 +28,48 @@ class BaseBotOrchestrator:
             raise RuntimeError(f"Director not set for {self.__class__.__name__}")
         return self._director
 
+    async def handle_entry(self, user_id: int, payload: Any = None) -> UnifiedViewDTO:
+        """
+        Точка входа в фичу (Cold Start).
+        Вызывается Директором, когда payload не передан (или передан для инициализации).
+        Задача: загрузить данные и вызвать self.render().
+        """
+        # Дефолтная реализация: пытаемся отрендерить без данных (для статических экранов)
+        return await self.render(payload)
+
     async def render_content(self, payload: Any) -> Any:
         """
         Превращает бизнес-данные (payload) в ViewDTO контента.
-        Должен быть реализован в наследниках, использующих process_response.
+        Должен быть реализован в наследниках.
         """
         raise NotImplementedError(f"render_content not implemented in {self.__class__.__name__}")
 
-    async def render(self, payload: Any) -> Any:
+    async def render(self, payload: Any) -> UnifiedViewDTO:
         """
-        Основной метод рендеринга.
-        Может быть переопределен в наследниках.
-        По умолчанию пытается обработать ответ через process_response или вызывает render_content.
+        Основной метод рендеринга (Hot Start).
+        Вызывается Директором, когда payload уже есть (например, ответ от API).
         """
-        if isinstance(payload, (CoreResponseDTO, CoreCompositeResponseDTO)):
+        if isinstance(payload, CoreResponseDTO):
             return await self.process_response(payload)
-        return await self.render_content(payload)
+        
+        # Если пришел просто payload, рендерим контент
+        content_view = await self.render_content(payload)
+        return UnifiedViewDTO(content=content_view, menu=None)
 
-    async def process_response(self, response: CoreResponseDTO | CoreCompositeResponseDTO) -> UnifiedViewDTO:
+    async def process_response(self, response: CoreResponseDTO) -> UnifiedViewDTO:
         """
-        Универсальный метод обработки ответа от Gateway.
-        Поддерживает как обычные, так и композитные ответы.
+        Универсальный метод обработки ответа.
         """
-        # 1. Проверка редиректа (смена стейта)
-        if self.expected_state and response.header.current_state != self.expected_state:
-            # Если стейт изменился, делегируем директору смену сцены
-            return await self.director.set_scene(feature=response.header.current_state, payload=response.payload)
+        # 1. Проверка навигации
+        if response.header.next_state and response.header.next_state != self.expected_state:
+            return await self.director.set_scene(
+                feature=response.header.next_state, 
+                payload=response.payload
+            )
 
-        # 2. Рендеринг основного контента
+        # 2. Рендер контента
         content_view = None
         if response.payload is not None:
             content_view = await self.render_content(response.payload)
-
-        # 3. Рендеринг меню (только для Composite)
-        menu_view = None
-        if isinstance(response, CoreCompositeResponseDTO) and response.menu_payload:
-            # Делегируем рендеринг меню директору через общий механизм
-            menu_view = await self.director.render(CoreDomain.MENU, "main", response.menu_payload)
-
-        return UnifiedViewDTO(content=content_view, menu=menu_view)
-
-    async def check_and_switch_state(self, response: CoreResponseDTO, fallback_payload: Any = None) -> Any | None:
-        """
-        Legacy метод. Используйте process_response.
-        """
-        if self.expected_state and response.header.current_state != self.expected_state:
-            payload_to_send = response.payload
-            if payload_to_send is None:
-                payload_to_send = fallback_payload
-
-            return await self.director.set_scene(feature=response.header.current_state, payload=payload_to_send)
-        return None
+            
+        return UnifiedViewDTO(content=content_view, menu=None)

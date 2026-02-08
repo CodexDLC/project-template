@@ -9,6 +9,8 @@
 # Пакет должен содержать handlers/__init__.py с экспортом `router`.
 INSTALLED_FEATURES: list[str] = [
     "features.commands",
+    "features.bot_menu",
+    "features.errors",
 ]
 
 # Список middleware в порядке регистрации.

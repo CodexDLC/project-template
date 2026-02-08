@@ -6,15 +6,23 @@ from src.shared.core.config import CommonSettings
 class BotSettings(CommonSettings):
     """
     Настройки для Telegram Bot.
-    Добавляет Bot Token и специфичные для бота параметры.
+    Определяет две ключевые роли:
+    - Superuser: Разработчик/Техподдержка (полный доступ).
+    - Owner: Владелец бота/бизнеса (доступ к админке).
     """
 
     # --- Bot ---
     bot_token: str
 
-    # --- Channels & Admins ---
+    # --- Channels ---
     bug_report_channel_id: int | None = None
-    admin_ids: str = ""
+    
+    # --- Roles (ENV) ---
+    # ID суперпользователей (разработчиков), через запятую
+    superuser_ids: str = ""
+    
+    # ID владельцев бота (администраторов бизнеса), через запятую
+    owner_ids: str = ""
 
     # --- Backend API ---
     backend_api_url: str = "http://localhost:8000"
@@ -22,12 +30,35 @@ class BotSettings(CommonSettings):
     backend_api_timeout: float = 10.0
 
     @property
-    def admin_ids_list(self) -> list[int]:
+    def superuser_ids_list(self) -> list[int]:
+        return self._parse_ids(self.superuser_ids)
+
+    @property
+    def owner_ids_list(self) -> list[int]:
+        return self._parse_ids(self.owner_ids)
+
+    @property
+    def roles(self) -> dict[str, list[int]]:
+        """
+        Словарь ролей для проверки доступа.
+        """
+        superusers = self.superuser_ids_list
+        owners = self.owner_ids_list
+        
+        return {
+            "superuser": superusers,
+            # Владелец + Суперюзер (суперюзер имеет права владельца)
+            "owner": list(set(owners + superusers)),
+            # Алиас для совместимости
+            "admin": list(set(owners + superusers)),
+        }
+
+    def _parse_ids(self, ids_str: str) -> list[int]:
         """Парсит строку '123,456' в список чисел."""
-        if not self.admin_ids:
+        if not ids_str:
             return []
         try:
-            return [int(x.strip()) for x in self.admin_ids.split(",") if x.strip()]
+            return [int(x.strip()) for x in ids_str.split(",") if x.strip()]
         except ValueError:
-            log.warning(f"BotSettings | Failed to parse ADMIN_IDS='{self.admin_ids}'. Check .env format.")
+            log.warning(f"BotSettings | Failed to parse IDs='{ids_str}'. Check .env format.")
             return []

@@ -13,8 +13,6 @@ from aiogram.types import CallbackQuery, Message
 from loguru import logger as log
 
 from src.telegram_bot.core.container import BotContainer
-from src.telegram_bot.features.commands.logic.orchestrator import StartOrchestrator
-from src.telegram_bot.features.commands.ui.commands_ui import CommandsUI
 from src.telegram_bot.features.commands.resources.texts import HELP_TEXT, SETTINGS_WIP
 from src.telegram_bot.features.commands.resources.formatters import MessageInfoFormatter
 from src.telegram_bot.features.commands.resources.callbacks import SettingsCallback
@@ -41,14 +39,9 @@ async def cmd_start(m: Message, state: FSMContext, bot: Bot, container: BotConta
     with contextlib.suppress(TelegramAPIError):
         await m.delete()
 
-    # 3. Orchestrator → UI
-    ui = CommandsUI()
-    orchestrator = StartOrchestrator(
-        auth_provider=container.auth_client,
-        ui=ui,
-        user=m.from_user,
-    )
-    view_dto = await orchestrator.handle_start()
+    # 3. Orchestrator (singleton из container) → UI
+    orchestrator = container.features["commands"]
+    view_dto = await orchestrator.handle_entry(user_id, payload=m.from_user)
 
     # 4. Sender → Telegram
     sender = ViewSender(bot, state, old_state_data, user_id)

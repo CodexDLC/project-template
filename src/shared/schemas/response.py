@@ -1,30 +1,32 @@
-"""
-Универсальные DTO для ответов от Backend API.
-Используются оркестраторами бота для обработки ответов от Gateway.
-"""
-
-from typing import Any
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
+T = TypeVar("T")
+
 
 class ResponseHeader(BaseModel):
-    """Заголовок ответа с метаданными."""
-    current_state: str
+    """
+    Метаданные ответа.
+    Управляют состоянием бота и сообщают об ошибках.
+    """
     success: bool = True
     message: str | None = None
 
+    # Откуда мы пришли (для логирования / навигации)
+    current_state: str | None = None
 
-class CoreResponseDTO(BaseModel):
+    # Куда переключить FSM (если None - остаемся где были)
+    next_state: str | None = None
+
+    # Trace ID для логов
+    trace_id: str | None = None
+
+
+class CoreResponseDTO(BaseModel, Generic[T]):
     """
-    Стандартный ответ от Backend API.
+    Стандартный ответ: Заголовок + Данные.
+    Используется для обмена данными между слоями (Client -> Orchestrator).
     """
     header: ResponseHeader
-    payload: Any | None = None
-
-
-class CoreCompositeResponseDTO(CoreResponseDTO):
-    """
-    Композитный ответ: основной payload + дополнительные данные для меню.
-    """
-    menu_payload: Any | None = None
+    payload: T | None = None

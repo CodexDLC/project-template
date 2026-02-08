@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from src.telegram_bot.services.director.registry import RENDER_ROUTES, SCENE_ROUTES
-
 KEY_SESSION_DATA = "session_data"
 
 if TYPE_CHECKING:
@@ -19,15 +17,13 @@ if TYPE_CHECKING:
 @runtime_checkable
 class OrchestratorProtocol(Protocol):
     async def render(self, payload: Any) -> Any: ...
+    async def handle_entry(self, user_id: int, payload: Any = None) -> Any: ...
     def set_director(self, director: Any): ...
 
 
 class Director:
     """
     Координатор переходов между фичами.
-    Два публичных метода:
-    - set_scene: межфичевый переход (смена FSM State + entry logic)
-    - render: внутрифичевый переход (без смены FSM State)
     """
 
     def __init__(self, container: "BotContainer", state: FSMContext, user_id: int):
@@ -38,54 +34,41 @@ class Director:
     async def set_scene(self, feature: str, payload: Any) -> Any:
         """
         Межфичевый переход: смена FSM State + вызов entry logic.
-
+        
         Args:
-            feature: Ключ фичи из SCENE_ROUTES
-            payload: Данные для рендера
+            feature: Имя фичи (ключ в container.features)
+            payload: Данные для инициализации (если None -> handle_entry без payload)
         """
-        scene_config = SCENE_ROUTES.get(feature)
-        if not scene_config:
-            logger.error(f"Director | unknown_scene='{feature}' user_id={self.user_id}")
-            return None
-
-        # Смена FSM State
-        current_fsm = await self.state.get_state()
-        if current_fsm != scene_config.fsm_state.state:
-            await self.state.set_state(scene_config.fsm_state)
-            logger.debug(f"Director | fsm_changed='{scene_config.fsm_state}' user_id={self.user_id}")
-
-        # Entry logic через render()
-        return await self.render(feature, scene_config.entry_service, payload)
-
-    async def render(self, feature: str, service: str, payload: Any) -> Any:
-        """
-        Внутрифичевый переход: вызов orchestrator БЕЗ смены FSM State.
-
-        Args:
-            feature: Ключ фичи из RENDER_ROUTES
-            service: Ключ сервиса внутри фичи
-            payload: Данные для рендера
-        """
-        feature_routes = RENDER_ROUTES.get(feature)
-        if not feature_routes:
+        # 1. Получаем оркестратор из контейнера
+        orchestrator = self.container.features.get(feature)
+        
+        if not orchestrator:
             logger.error(f"Director | unknown_feature='{feature}' user_id={self.user_id}")
+            # Можно вернуть экран ошибки, если он есть
             return None
 
-        container_getter = feature_routes.get(service)
-        if not container_getter:
-            logger.error(f"Director | unknown_service='{service}' feature='{feature}' user_id={self.user_id}")
-            return None
-
-        # Получение orchestrator из container
-        factory_or_instance = getattr(self.container, container_getter, None)
-        if not factory_or_instance:
-            logger.error(f"Director | container_missing='{container_getter}' user_id={self.user_id}")
-            return None
-
-        orchestrator = factory_or_instance() if callable(factory_or_instance) else factory_or_instance
         orchestrator = cast(OrchestratorProtocol, orchestrator)
-
         if hasattr(orchestrator, "set_director"):
             orchestrator.set_director(self)
 
+        # 2. Смена FSM State
+        # Мы договорились, что оркестратор сам ставит стейт внутри handle_entry,
+        # но для надежности можно попробовать найти стейт в реестре
+        # states_group = self.container.states_registry.get(feature)
+        # if states_group:
+        #     await self.state.set_state(states_group.main)
+
+        # 3. Entry logic
+        # Всегда вызываем handle_entry для инициализации фичи
+        if hasattr(orchestrator, "handle_entry"):
+            return await orchestrator.handle_entry(self.user_id, payload)
+        
+        # Fallback для старых оркестраторов (если они еще есть)
         return await orchestrator.render(payload)
+
+    async def render(self, feature: str, service: str, payload: Any) -> Any:
+        """
+        Внутрифичевый переход (Legacy метод, если нужен).
+        Сейчас лучше использовать set_scene или методы самого оркестратора.
+        """
+        return await self.set_scene(feature, payload)
