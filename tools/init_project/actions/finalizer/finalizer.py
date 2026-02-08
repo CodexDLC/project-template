@@ -1,9 +1,14 @@
 """
-Finalizer Action — финальная стадия установки.
+Finalizer Action — финализация установки с двумя git коммитами.
 
-1. Удаляет tools/init_project/ (сам инсталлятор)
-2. Удаляет project_structure.txt (артефакт шаблона)
-3. Опционально: git init + первый коммит
+Flow:
+  1. commit_install() — ПЕРЕД установкой: git init → "Install" commit (ВСЕ файлы)
+  2. execute()        — ПОСЛЕ установки: чистка артефактов → "Activate" commit
+                        + создание веток develop/release
+
+Фишка: Первый коммит содержит ВСЕ модули шаблона.
+Команда `add bot` может восстановить их из git истории:
+  git checkout <install-hash> -- src/telegram_bot
 """
 
 from __future__ import annotations
@@ -16,9 +21,50 @@ from tools.init_project.config import InstallContext
 
 
 class FinalizerAction:
-    """Финализация: чистка + git init."""
+    """Финализация: два коммита + ветки."""
+
+    def __init__(self) -> None:
+        self._install_hash: str | None = None
+
+    # ─────────────────────────────────────────
+    # Phase 0: ПЕРЕД установкой
+    # ─────────────────────────────────────────
+
+    def commit_install(self, ctx: InstallContext) -> None:
+        """Создаёт git init + коммит 'Install' со ВСЕМИ файлами шаблона."""
+        root = ctx.project_root
+
+        # Удаляем .git от шаблона если есть
+        git_dir = root / ".git"
+        if git_dir.exists():
+            shutil.rmtree(git_dir)
+
+        # Init + первый коммит
+        self._run(["git", "init", "-b", "main"], root)
+        self._run(["git", "add", "-A"], root)
+        self._run(
+            ["git", "commit", "-m", "Install: template snapshot (all modules)"],
+            root,
+        )
+
+        # Запоминаем hash первого коммита (для команды add)
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            self._install_hash = result.stdout.strip()
+            print(f"    ✅ Commit 'Install': {self._install_hash[:8]}")
+
+    # ─────────────────────────────────────────
+    # Phase 4: ПОСЛЕ установки
+    # ─────────────────────────────────────────
 
     def execute(self, ctx: InstallContext) -> None:
+        """Чистка артефактов + коммит 'Activate' + ветки."""
+
         # ── Удаление артефактов шаблона ──
         artifacts = [
             "project_structure.txt",
@@ -30,41 +76,44 @@ class FinalizerAction:
                 path.unlink()
                 print(f"    🗑️  Removed: {artifact}")
 
-        # ── Git init ──
-        if ctx.init_git:
-            self._git_init(ctx.project_root, ctx.project_name)
+        # ── Сохранить hash первого коммита в файл (для команды add) ──
+        if self._install_hash:
+            hash_file = ctx.project_root / ".template_install_hash"
+            hash_file.write_text(self._install_hash, encoding="utf-8")
 
-        # ── Самоудаление инсталлятора ──
-        # Делаем последним — после этого код инсталлятора больше не доступен
-        installer_dir = ctx.project_root / "tools" / "init_project"
-        if installer_dir.exists():
-            shutil.rmtree(installer_dir)
-            print("    🗑️  Removed: tools/init_project/")
+        # ── Commit "Activate" ──
+        if ctx.init_git:
+            self._commit_activate(ctx)
+
+    def _commit_activate(self, ctx: InstallContext) -> None:
+        """Коммит 'Activate' + ветки develop/release."""
+        root = ctx.project_root
+
+        self._run(["git", "add", "-A"], root)
+        self._run(
+            ["git", "commit", "-m", f"Activate: {ctx.project_name} project initialized"],
+            root,
+        )
+        print("    ✅ Commit 'Activate': project ready")
+
+        # Создаём ветки
+        self._run(["git", "branch", "develop"], root)
+        self._run(["git", "branch", "release"], root)
+        print("    🌿 Created branches: develop, release")
+
+        # Переключаемся на develop
+        self._run(["git", "checkout", "develop"], root)
+        print("    📍 Switched to branch: develop")
+
+    # ─────────────────────────────────────────
+    # Helpers
+    # ─────────────────────────────────────────
 
     @staticmethod
-    def _git_init(project_root: Path, project_name: str) -> None:
-        """Инициализирует git и делает первый коммит."""
+    def _run(cmd: list[str], cwd: Path) -> bool:
+        """Выполняет git команду, возвращает success."""
         try:
-            subprocess.run(
-                ["git", "init"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "add", "-A"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-            )
-            subprocess.run(
-                ["git", "commit", "-m", f"Initial commit: {project_name}"],
-                cwd=project_root,
-                check=True,
-                capture_output=True,
-            )
-            print("    ✅ Git initialized with first commit")
-        except FileNotFoundError:
-            print("    ⚠️  Git not found — skipping git init")
-        except subprocess.CalledProcessError as e:
-            print(f"    ⚠️  Git error: {e}")
+            subprocess.run(cmd, cwd=cwd, check=True, capture_output=True)
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False

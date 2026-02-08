@@ -1,16 +1,15 @@
 """
 Runner — оркестратор установки.
 
-Порядок:
-1. installers.pre_install()
-2. installers.install()
-3. cleaner — удаление невыбранных модулей
-4. renamer — замена имени проекта
-5. docker — генерация Docker файлов (заглушка)
-6. poetry — управление зависимостями (заглушка)
-7. scaffolder — создание структур (заглушка)
-8. installers.post_install()
-9. finalizer — git init, коммит, самоудаление
+Flow с двумя коммитами:
+1. git init → commit "Install" (ВСЕ файлы шаблона — точка возврата)
+2. installers.pre_install + install
+3. cleaner → renamer → docker → poetry → scaffolder
+4. installers.post_install
+5. finalizer → commit "Activate" (чистый проект)
+
+Фишка: первый коммит хранит ВСЕ модули.
+Команда `add bot` потом может достать их из git истории.
 """
 
 from __future__ import annotations
@@ -53,9 +52,16 @@ def _get_installers(ctx: InstallContext) -> list[BaseInstaller]:
 def run(ctx: InstallContext) -> None:
     """Запускает полный flow установки."""
 
+    finalizer = FinalizerAction()
+
+    # ── Phase 0: Git "Install" commit — фиксируем ВСЕ файлы шаблона ──
+    if ctx.init_git:
+        print("  📸 Creating 'Install' snapshot...")
+        finalizer.commit_install(ctx)
+
+    # ── Phase 1: Installers ──
     installers = _get_installers(ctx)
 
-    # ── Phase 1: Installers pre_install + install ──
     for installer in installers:
         print(f"  📦 {installer.name} — pre_install...")
         installer.pre_install(ctx)
@@ -80,11 +86,11 @@ def run(ctx: InstallContext) -> None:
     print("  🏗️  Scaffolding...")
     ScaffolderAction().execute(ctx)
 
-    # ── Phase 3: Installers post_install ──
+    # ── Phase 3: Post-install ──
     for installer in installers:
         print(f"  📦 {installer.name} — post_install...")
         installer.post_install(ctx)
 
-    # ── Phase 4: Finalize ──
+    # ── Phase 4: Finalize — чистка артефактов + "Activate" commit ──
     print("  🎯 Finalizing...")
-    FinalizerAction().execute(ctx)
+    finalizer.execute(ctx)
