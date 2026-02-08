@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.frontend.telegram_bot.resources.constants import FSM_CONTEXT_KEY
+from src.telegram_bot.resources.constants import FSM_CONTEXT_KEY
 
 
 class BaseUIService:

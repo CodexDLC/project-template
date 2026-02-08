@@ -1,41 +1,39 @@
+"""
+Оркестратор фичи commands.
+Координирует работу между контрактом (данные) и UI (отображение).
+"""
+
 from aiogram.types import User
 from src.shared.schemas.user import UserUpsertDTO
 
 from src.telegram_bot.services.base.base_orchestrator import BaseBotOrchestrator
 from src.telegram_bot.services.base.view_dto import UnifiedViewDTO
-from src.telegram_bot.features.commands.client import AuthClient
-from src.telegram_bot.features.commands.logic.ui.ui import StartUI
+from src.telegram_bot.features.commands.contracts.commands_contract import AuthDataProvider
+from src.telegram_bot.features.commands.ui.commands_ui import CommandsUI
 
 
-class StartBotOrchestrator(BaseBotOrchestrator):
+class StartOrchestrator(BaseBotOrchestrator):
     """
-    Оркестратор Главного Меню.
-    Реализует абстрактный метод render.
+    Оркестратор стартового экрана.
+    handler вызывает handle_start() → получает UnifiedViewDTO → отдаёт sender.
     """
 
-    def __init__(self, auth_client: AuthClient, ui_service: StartUI, user: User):
-        # Передаем None, так как команда доступна в любом стейте (или без него)
+    def __init__(self, auth_provider: AuthDataProvider, ui: CommandsUI, user: User):
         super().__init__(expected_state=None)
-        self.client = auth_client
-        self.ui = ui_service
+        self.auth = auth_provider
+        self.ui = ui
         self.user = user
 
     async def render(self, user_name: str) -> UnifiedViewDTO:
-        """
-        Реализация абстрактного метода.
-        Превращает имя пользователя (payload) в готовый UI.
-        """
-        menu_view = self.ui.render_title_screen(user_name)
-
+        """Превращает имя пользователя в готовый UI."""
+        menu_view = self.ui.render_start_screen(user_name)
         return UnifiedViewDTO(menu=menu_view, content=None, clean_history=True)
 
     async def handle_start(self) -> UnifiedViewDTO:
         """
-        Основной метод действия.
-        1. Action (Side Effect) -> Core
-        2. Render -> UI
+        Основной метод: синхронизация юзера + рендер стартового экрана.
         """
-        # 1. Action: Sync User
+        # 1. Sync user через контракт (API или Repository)
         user_dto = UserUpsertDTO(
             telegram_id=self.user.id,
             first_name=self.user.first_name,
@@ -44,24 +42,8 @@ class StartBotOrchestrator(BaseBotOrchestrator):
             language_code=self.user.language_code,
             is_premium=bool(self.user.is_premium),
         )
-        await self.client.upsert_user(user_dto)
+        await self.auth.upsert_user(user_dto)
 
         # 2. Render
-        user_name = self.user.first_name or "Wanderer"
-        return await self.render(user_name)
-
-    async def handle_logout(self) -> UnifiedViewDTO:
-        """
-        Обрабатывает команду выхода.
-        Очищает сессию и возвращает на стартовый экран.
-        """
-        # 1. Очистка сессии на бэкенде
-        await self.client.logout(self.user.id)
-
-        # 2. Сброс сцены (через Director, если он установлен, или просто рендер старта)
-        if self._director:
-            await self._director.state.clear()
-
-        # 3. Рендер стартового экрана
-        user_name = self.user.first_name or "Wanderer"
+        user_name = self.user.first_name or "User"
         return await self.render(user_name)

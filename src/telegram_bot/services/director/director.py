@@ -1,3 +1,8 @@
+"""
+Director — координатор переходов между фичами.
+Управляет FSM стейтами и делегирует рендеринг оркестраторам.
+"""
+
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from aiogram.fsm.context import FSMContext
@@ -5,49 +10,51 @@ from loguru import logger
 
 from src.telegram_bot.services.director.registry import RENDER_ROUTES, SCENE_ROUTES
 
-# Константа для ключа FSM State (хранит данные игровой сессии)
 KEY_SESSION_DATA = "session_data"
 
 if TYPE_CHECKING:
     from src.telegram_bot.core.container import BotContainer
 
 
-# Протокол только для проверки наличия методов, без жесткого DTO
 @runtime_checkable
-class UIOrchestratorProtocol(Protocol):
+class OrchestratorProtocol(Protocol):
     async def render(self, payload: Any) -> Any: ...
     def set_director(self, director: Any): ...
 
 
-class GameDirector:
-    def __init__(self, container: "BotContainer", state: FSMContext):
+class Director:
+    """
+    Координатор переходов между фичами.
+    Два публичных метода:
+    - set_scene: межфичевый переход (смена FSM State + entry logic)
+    - render: внутрифичевый переход (без смены FSM State)
+    """
+
+    def __init__(self, container: "BotContainer", state: FSMContext, user_id: int):
         self.container = container
         self.state = state
+        self.user_id = user_id
 
     async def set_scene(self, feature: str, payload: Any) -> Any:
         """
         Межфичевый переход: смена FSM State + вызов entry logic.
 
         Args:
-            feature: Ключ фичи (CoreDomain.COMBAT, CoreDomain.EXPLORATION, etc.)
+            feature: Ключ фичи из SCENE_ROUTES
             payload: Данные для рендера
-
-        Returns:
-            ViewDTO от entry orchestrator
         """
         scene_config = SCENE_ROUTES.get(feature)
-
         if not scene_config:
-            logger.error(f"Director: Unknown scene '{feature}'")
+            logger.error(f"Director | unknown_scene='{feature}' user_id={self.user_id}")
             return None
 
-        # 1. Смена FSM State
+        # Смена FSM State
         current_fsm = await self.state.get_state()
         if current_fsm != scene_config.fsm_state.state:
             await self.state.set_state(scene_config.fsm_state)
-            logger.debug(f"Director: FSM changed to '{scene_config.fsm_state}'")
+            logger.debug(f"Director | fsm_changed='{scene_config.fsm_state}' user_id={self.user_id}")
 
-        # 2. Вызов entry logic через render()
+        # Entry logic через render()
         return await self.render(feature, scene_config.entry_service, payload)
 
     async def render(self, feature: str, service: str, payload: Any) -> Any:
@@ -55,70 +62,30 @@ class GameDirector:
         Внутрифичевый переход: вызов orchestrator БЕЗ смены FSM State.
 
         Args:
-            feature: Ключ фичи (CoreDomain.COMBAT, CoreDomain.EXPLORATION, etc.)
-            service: Ключ сервиса внутри фичи ("navigation", "interaction", etc.)
+            feature: Ключ фичи из RENDER_ROUTES
+            service: Ключ сервиса внутри фичи
             payload: Данные для рендера
-
-        Returns:
-            ViewDTO от orchestrator
         """
-        # 1. Поиск feature в RENDER_ROUTES
         feature_routes = RENDER_ROUTES.get(feature)
         if not feature_routes:
-            logger.error(f"Director: Unknown feature '{feature}' in RENDER_ROUTES")
+            logger.error(f"Director | unknown_feature='{feature}' user_id={self.user_id}")
             return None
 
-        # 2. Поиск logic внутри feature
         container_getter = feature_routes.get(service)
         if not container_getter:
-            logger.error(f"Director: Unknown logic '{service}' in feature '{feature}'")
+            logger.error(f"Director | unknown_service='{service}' feature='{feature}' user_id={self.user_id}")
             return None
 
-        # 3. Получение logic из BotContainer
-        # Может быть методом (factory) или свойством (instance)
+        # Получение orchestrator из container
         factory_or_instance = getattr(self.container, container_getter, None)
         if not factory_or_instance:
-            logger.error(f"Director: Container missing '{container_getter}'")
+            logger.error(f"Director | container_missing='{container_getter}' user_id={self.user_id}")
             return None
 
         orchestrator = factory_or_instance() if callable(factory_or_instance) else factory_or_instance
+        orchestrator = cast(OrchestratorProtocol, orchestrator)
 
-        # Cast to protocol for type checking
-        orchestrator = cast(UIOrchestratorProtocol, orchestrator)
-
-        # 4. Setter Injection (Director -> logic)
         if hasattr(orchestrator, "set_director"):
             orchestrator.set_director(self)
 
-        # 5. Render
-        if not hasattr(orchestrator, "render"):
-            logger.error(f"Director: {type(orchestrator)} missing 'render'")
-            return None
-
         return await orchestrator.render(payload)
-
-    # --- Session Management ---
-
-    async def set_char_id(self, char_id: int) -> None:
-        """
-        Сохраняет ID персонажа в сессию.
-        """
-        data = await self.state.get_data()
-        session_data = data.get(KEY_SESSION_DATA, {})
-        session_data["char_id"] = char_id
-        await self.state.update_data({KEY_SESSION_DATA: session_data})
-        logger.info(f"Director | action=set_char_id char_id={char_id}")
-
-    async def get_char_id(self) -> int | None:
-        """
-        Возвращает ID текущего персонажа из сессии.
-        """
-        data = await self.state.get_data()
-        session_data = data.get(KEY_SESSION_DATA, {})
-        return session_data.get("char_id")
-
-    async def clear_session(self) -> None:
-        """
-        Очищает данные сессии (выход из игры).
-        """
-        await self.state.update_data({KEY_SESSION_DATA: {}})

@@ -1,4 +1,3 @@
-# frontend/telegram_bot/shared/services/common_fsm_handlers.py
 """
 Общие обработчики FSM состояний.
 Garbage collector - удаляет нежелательные текстовые сообщения в состояниях,
@@ -11,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from loguru import logger as log
 
-from src.frontend.telegram_bot.resources.states import GARBAGE_TEXT_STATES
+from src.telegram_bot.resources.states import GARBAGE_TEXT_STATES
 
 router = Router(name="common_fsm_router")
 

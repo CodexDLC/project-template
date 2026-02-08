@@ -1,6 +1,6 @@
 from src.shared.schemas.user import UserUpsertDTO
 
-from src.frontend.telegram_bot.core.api_client import BaseApiClient
+from src.telegram_bot.core.api_client import BaseApiClient
 
 
 class AuthClient(BaseApiClient):

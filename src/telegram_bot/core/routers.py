@@ -1,26 +1,52 @@
-# frontend/telegram_bot/core/routers.py
 """
 Централизованный реестр роутеров для Telegram Bot.
-Аналог Django urls.py - все роутеры регистрируются здесь.
+Автоматически подключает фичи из INSTALLED_FEATURES (core/settings.py).
 """
 
-from aiogram import Router
+import importlib
 
-# --- System Commands ---
-from src.telegram_bot.features.commands import handlers as commands_handlers
-# --- Common Services ---
+from aiogram import Router
+from loguru import logger as log
+
+from src.telegram_bot.core.settings import INSTALLED_FEATURES
 from src.telegram_bot.services.fsm.common_fsm_handlers import router as common_fsm_router
 
-# Главный роутер приложения
-main_router = Router(name="main_router")
 
-# --- Регистрация роутеров ---
-# Порядок важен: сначала системные, потом игровые фичи, последним - garbage collector
-main_router.include_routers(
-    # System
-    commands_handlers.router,
+def collect_feature_routers() -> list[Router]:
+    """
+    Читает INSTALLED_FEATURES и импортирует router из каждой фичи.
+    Ожидает что каждая фича экспортирует `router` из handlers/__init__.py.
+    """
+    routers: list[Router] = []
+
+    for feature_path in INSTALLED_FEATURES:
+        module_path = f"src.telegram_bot.{feature_path}.handlers"
+        try:
+            module = importlib.import_module(module_path)
+            feature_router = getattr(module, "router", None)
+            if feature_router and isinstance(feature_router, Router):
+                routers.append(feature_router)
+                log.info(f"RouterCollector | feature='{feature_path}' status=loaded")
+            else:
+                log.warning(f"RouterCollector | feature='{feature_path}' status=no_router")
+        except ImportError as e:
+            log.error(f"RouterCollector | feature='{feature_path}' status=import_error error='{e}'")
+
+    return routers
 
 
-    # last
-    common_fsm_router,
-)
+def build_main_router() -> Router:
+    """
+    Собирает главный роутер приложения.
+    Порядок: фичи из INSTALLED_FEATURES, затем garbage collector (последний).
+    """
+    main_router = Router(name="main_router")
+
+    feature_routers = collect_feature_routers()
+    main_router.include_routers(
+        *feature_routers,
+        common_fsm_router,  # Garbage collector — всегда последний
+    )
+
+    log.info(f"MainRouter | features_loaded={len(feature_routers)}")
+    return main_router

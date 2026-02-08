@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING, Any
 
-from src.frontend.telegram_bot.base.view_dto import UnifiedViewDTO
+from src.telegram_bot.services.base.view_dto import UnifiedViewDTO
 from src.shared.enums.domain_enums import CoreDomain
 from src.shared.schemas.response import CoreCompositeResponseDTO, CoreResponseDTO
 
 if TYPE_CHECKING:
-    from src.frontend.telegram_bot.services.director.director import GameDirector
+    from src.telegram_bot.services.director.director import Director
 
 
 class BaseBotOrchestrator:
@@ -15,13 +15,13 @@ class BaseBotOrchestrator:
 
     def __init__(self, expected_state: str | None):
         self.expected_state = expected_state
-        self._director: GameDirector | None = None
+        self._director: Director | None = None
 
-    def set_director(self, director: "GameDirector"):
+    def set_director(self, director: "Director"):
         self._director = director
 
     @property
-    def director(self) -> "GameDirector":
+    def director(self) -> "Director":
         if not self._director:
             raise RuntimeError(f"Director not set for {self.__class__.__name__}")
         return self._director
