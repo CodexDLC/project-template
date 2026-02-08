@@ -1,12 +1,13 @@
+from aiogram import Bot
 from arq.connections import RedisSettings
 from loguru import logger as log
-from aiogram import Bot
 
-from src.shared.core.arq.base import BaseArqSettings, base_startup, base_shutdown
+from src.shared.core.arq.base import BaseArqSettings, base_shutdown, base_startup
 from src.telegram_bot.core.config import BotSettings
+from src.telegram_bot.services.worker.tasks import send_notification_task
 
 settings = BotSettings()
-from src.telegram_bot.services.worker.tasks import send_notification_task
+
 
 async def bot_startup(ctx: dict) -> None:
     """
@@ -14,7 +15,7 @@ async def bot_startup(ctx: dict) -> None:
     Создает экземпляр бота и кладет его в контекст.
     """
     await base_startup(ctx)
-    
+
     log.info("BotWorkerStartup | initializing bot instance")
     # Создаем бота (важно: используем тот же токен)
     # В реальном проекте лучше передавать уже созданный инстанс или создавать новый
@@ -30,7 +31,7 @@ async def bot_shutdown(ctx: dict) -> None:
     bot = ctx.get("bot")
     if bot:
         await bot.session.close()
-        
+
     await base_shutdown(ctx)
 
 class BotArqSettings(BaseArqSettings):
@@ -41,12 +42,12 @@ class BotArqSettings(BaseArqSettings):
         host=settings.redis_host,
         port=settings.redis_port,
         password=settings.redis_password,
-        database=0, 
+        database=0,
     )
 
     on_startup = bot_startup
     on_shutdown = bot_shutdown
-    
+
     # Регистрация задач
     functions = [
         send_notification_task,

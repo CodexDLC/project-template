@@ -17,7 +17,7 @@ Migration Agent — внедрение шаблона в существующи�
 Что переносится автоматически (если нет в проекте):
   - src/shared/             общий код
   - src/telegram_bot/       бот (если нет)
-  - src/backend-fastapi/    бэкенд (если нет)
+  - src/backend_fastapi/    бэкенд (если нет)
   - tools/                  утилиты + инсталлятор
   - scripts/                скрипты (lint_docs, generate_tree)
   - docs/                   структура документации
@@ -63,8 +63,8 @@ STANDARD_DIRS: list[str] = [
 TRANSFERABLE_MODULES: dict[str, str] = {
     "src/shared": "Shared utilities (config, logging, redis)",
     "src/telegram_bot": "Telegram Bot (aiogram)",
-    "src/backend-fastapi": "FastAPI Backend",
-    "src/backend-django": "Django Backend",
+    "src/backend_fastapi": "FastAPI Backend",
+    "src/backend_django": "Django Backend",
 }
 
 # Инфраструктурные папки — переносятся всегда если нет

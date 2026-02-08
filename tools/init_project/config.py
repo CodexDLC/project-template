@@ -52,21 +52,32 @@ class ModuleConfig:
 MODULES: dict[str, ModuleConfig] = {
     "fastapi": ModuleConfig(
         name="FastAPI Backend",
-        src_dirs=["src/backend-fastapi"],
+        src_dirs=["src/backend_fastapi"],
         deploy_dirs=["deploy/Fast_api"],
-        doc_dirs=["docs/en_EN/architecture/backend-fastapi"],
+        doc_dirs=[
+            "docs/en_EN/architecture/backend_fastapi",
+            "docs/en_EN/infrastructure/deployment/fast_api",
+            "docs/ru_RU/architecture/backend_fastapi",
+        ],
     ),
     "django": ModuleConfig(
         name="Django Backend",
-        src_dirs=["src/backend-django"],
+        src_dirs=["src/backend_django"],
         deploy_dirs=["deploy/Django"],
-        doc_dirs=["docs/en_EN/architecture/backend-django"],
+        doc_dirs=[
+            "docs/en_EN/architecture/backend_django",
+            "docs/ru_RU/architecture/backend_django",
+        ],
     ),
     "telegram_bot": ModuleConfig(
         name="Telegram Bot",
         src_dirs=["src/telegram_bot"],
         deploy_dirs=[],
-        doc_dirs=["docs/en_EN/architecture/telegram_bot"],
+        doc_dirs=[
+            "docs/en_EN/architecture/telegram_bot",
+            "docs/ru_RU/architecture/telegram_bot",
+            "docs/ru_RU/features",
+        ],
     ),
 }
 

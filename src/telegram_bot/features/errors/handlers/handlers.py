@@ -1,6 +1,6 @@
-from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram import F, Router
 from aiogram.filters import StateFilter
+from aiogram.types import CallbackQuery
 
 from src.telegram_bot.core.container import BotContainer
 from src.telegram_bot.features.errors.feature_setting import ErrorStates
@@ -16,16 +16,19 @@ async def handle_refresh(call: CallbackQuery, state, container: BotContainer):
     Пытается перезагрузить текущую ошибку (или можно сделать редирект в меню).
     """
     await call.answer("Обновление...")
-    
+
+    if not call.bot:
+        return
+
     # Просто перерисовываем экран (можно добавить логику повтора операции)
     orchestrator = container.features["errors"]
     director = Director(container, state, call.from_user.id)
     orchestrator.set_director(director)
-    
+
     # Получаем текущий код ошибки из стейта (если бы мы его хранили)
     # Пока просто рендерим дефолт
     view_dto = await orchestrator.render("default")
-    
+
     state_data = await state.get_data()
     sender = ViewSender(call.bot, state, state_data, call.from_user.id)
     await sender.send(view_dto)
@@ -36,7 +39,7 @@ async def handle_back(call: CallbackQuery, state, container: BotContainer):
     Кнопка "Назад" - ведет в меню (или предыдущий экран, если бы была история).
     """
     await call.answer()
-    
+
     # Редирект в главное меню
     director = Director(container, state, call.from_user.id)
     await director.set_scene("bot_menu", None)

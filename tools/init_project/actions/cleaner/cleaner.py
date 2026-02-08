@@ -7,9 +7,7 @@ Cleaner Action — удаление невыбранных модулей.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from tools.init_project.config import InstallContext, MODULES, safe_rmtree
+from tools.init_project.config import MODULES, InstallContext, safe_rmtree
 
 
 class CleanerAction:

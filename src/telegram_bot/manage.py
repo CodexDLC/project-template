@@ -1,5 +1,3 @@
-import os
-import sys
 import argparse
 from pathlib import Path
 
@@ -15,7 +13,7 @@ def load_template(name: str) -> str:
 
 def create_feature(name: str):
     base_path = Path(__file__).parent / "features" / name
-    
+
     if base_path.exists():
         print(f"❌ Ошибка: Фича '{name}' уже существует!")
         return

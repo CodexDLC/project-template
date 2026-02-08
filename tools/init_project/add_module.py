@@ -26,10 +26,10 @@ MODULE_PATHS: dict[str, list[str]] = {
         "src/telegram_bot",
     ],
     "fastapi": [
-        "src/backend-fastapi",
+        "src/backend_fastapi",
     ],
     "django": [
-        "src/backend-django",
+        "src/backend_django",
     ],
     "shared": [
         "src/shared",

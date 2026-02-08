@@ -168,7 +168,7 @@ Migrations run in **CI/CD pipeline**, not at application startup (prevents race 
 ### FastAPI (Alembic)
 
 ```bash
-cd src/backend-fastapi
+cd src/backend_fastapi
 
 # Create migration
 alembic revision --autogenerate -m "add_users_table"
@@ -183,7 +183,7 @@ docker compose run --rm -T backend alembic upgrade head
 ### Django
 
 ```bash
-cd src/backend-django
+cd src/backend_django
 
 python manage.py makemigrations
 python manage.py migrate

@@ -1,8 +1,4 @@
-from typing import Generic, TypeVar
-
 from pydantic import BaseModel
-
-T = TypeVar("T")
 
 
 class ResponseHeader(BaseModel):
@@ -23,7 +19,7 @@ class ResponseHeader(BaseModel):
     trace_id: str | None = None
 
 
-class CoreResponseDTO(BaseModel, Generic[T]):
+class CoreResponseDTO[T](BaseModel):
     """
     Стандартный ответ: Заголовок + Данные.
     Используется для обмена данными между слоями (Client -> Orchestrator).

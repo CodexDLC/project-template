@@ -19,11 +19,9 @@ Flow:
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 from tools.init_project.config import InstallContext
-
 from tools.init_project.installers.base import BaseInstaller
 
 # Путь к ресурсам Django
@@ -39,7 +37,7 @@ class DjangoInstaller(BaseInstaller):
 
     def install(self, ctx: InstallContext) -> None:
         """Создаёт полную Django структуру из шаблонов."""
-        backend_dir = ctx.project_root / "src" / "backend-django"
+        backend_dir = ctx.project_root / "src" / "backend_django"
 
         # ── 1. Core (settings, urls, wsgi, asgi) ──
         self._create_core(backend_dir, ctx.project_name)
@@ -59,7 +57,7 @@ class DjangoInstaller(BaseInstaller):
         print("    ✅ Django structure created")
 
     def post_install(self, ctx: InstallContext) -> None:
-        manage = ctx.project_root / "src" / "backend-django" / "manage.py"
+        manage = ctx.project_root / "src" / "backend_django" / "manage.py"
         if manage.exists():
             print("    ✅ manage.py verified")
         else:

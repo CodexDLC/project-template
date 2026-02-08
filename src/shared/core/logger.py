@@ -1,11 +1,14 @@
 import logging
 import sys
 from pathlib import Path
-from types import FrameType
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from src.shared.core.config import CommonSettings
+
+if TYPE_CHECKING:
+    from types import FrameType
 
 
 class InterceptHandler(logging.Handler):
@@ -20,6 +23,7 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
+        # Используем строковую аннотацию или 'Any', если FrameType скрыт
         frame: FrameType | None = logging.currentframe()
         depth = 6
         while frame and frame.f_code.co_filename == logging.__file__:

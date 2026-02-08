@@ -8,7 +8,7 @@ Docker Action — генерация Docker файлов на основе вы�
 from __future__ import annotations
 
 from pathlib import Path
-from textwrap import dedent, indent
+from textwrap import dedent
 
 from tools.init_project.config import InstallContext, safe_rmtree
 
@@ -122,7 +122,7 @@ class DockerAction:
         lint_paths: list[str] = []
         if ctx.backend == "fastapi":
             extras.append("fastapi")
-            lint_paths.append("src/backend-fastapi/")
+            lint_paths.append("src/backend_fastapi/")
         if ctx.include_bot:
             extras.append("bot")
             lint_paths.append("src/telegram_bot/")
@@ -356,7 +356,7 @@ class DockerAction:
             container_name: {name}-backend
             env_file: ../.env
             volumes:
-              - ../src/backend-fastapi:/app/src/backend-fastapi:ro
+              - ../src/backend_fastapi:/app/src/backend_fastapi:ro
               - ../src/shared:/app/src/shared:ro
               - uploads:/app/data/uploads
               - logs:/app/data/logs

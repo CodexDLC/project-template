@@ -8,7 +8,6 @@ Poetry Action — управление зависимостями в pyproject.t
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 from tools.init_project.config import InstallContext
 

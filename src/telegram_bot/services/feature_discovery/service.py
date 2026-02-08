@@ -1,10 +1,10 @@
 import importlib
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger as log
 
-from src.telegram_bot.core.settings import INSTALLED_FEATURES
 from src.telegram_bot.core.garbage_collector import GarbageStateRegistry
+from src.telegram_bot.core.settings import INSTALLED_FEATURES
 
 if TYPE_CHECKING:
     from src.telegram_bot.core.container import BotContainer
@@ -93,14 +93,14 @@ class FeatureDiscoveryService:
 
         return None
 
-    def _discover_menu(self, feature_path: str) -> dict | None:
+    def _discover_menu(self, feature_path: str) -> dict[Any, Any] | None:
         """Ищет MENU_CONFIG в menu.py"""
         module_path = f"src.telegram_bot.{feature_path}.menu"
         try:
             module = importlib.import_module(module_path)
             config = getattr(module, "MENU_CONFIG", None)
             if config and isinstance(config, dict):
-                return config
+                return cast("dict[Any, Any]", config)
         except ImportError:
             pass
         except Exception as e:

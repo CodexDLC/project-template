@@ -3,6 +3,7 @@ from aiogram.fsm.state import State, StatesGroup
 from src.telegram_bot.features.commands.logic.orchestrator import StartOrchestrator
 from src.telegram_bot.features.commands.ui.commands_ui import CommandsUI
 
+
 # 1. Определение состояний (для команд обычно не нужно, но для стандарта оставим)
 class CommandsStates(StatesGroup):
     main = State()

@@ -11,10 +11,10 @@ def get_top_level_dirs(root_path, ignore_dirs):
 
 def generate_tree(root_path, target_dir, ignore_dirs, ignore_extensions, output_file):
     """Генерирует дерево для указанной целевой директории (или всего проекта)."""
-    
+
     # Если target_dir это корень проекта, начинаем с него, иначе с подпапки
     start_path = os.path.join(root_path, target_dir) if target_dir else root_path
-    
+
     with open(output_file, "w", encoding="utf-8") as f:
         title = f"Project Structure: {target_dir if target_dir else 'Full Project'}"
         f.write(f"{title}\n{'=' * len(title)}\n\n")
@@ -61,18 +61,18 @@ def main():
     print(f"\n🔍 Сканирование проекта: {project_root}")
     print("Выберите область для генерации структуры:\n")
     print("   0. 🌳 ВЕСЬ ПРОЕКТ (Full Structure)")
-    
+
     for idx, folder in enumerate(top_dirs, 1):
         print(f"   {idx}. 📁 {folder}/")
 
     # 3. Ввод пользователя
     while True:
         try:
-            choice = input("\nВведите номер (0-{}): ".format(len(top_dirs))).strip()
+            choice = input(f"\nВведите номер (0-{len(top_dirs)}): ").strip()
             if not choice.isdigit():
                 raise ValueError
             choice_idx = int(choice)
-            
+
             if 0 <= choice_idx <= len(top_dirs):
                 break
             print("❌ Неверный номер. Попробуйте еще раз.")
@@ -87,7 +87,7 @@ def main():
     # 5. Генерация
     print(f"\n⚙️ Генерирую структуру для: {target_folder if target_folder else 'Весь проект'}...")
     generate_tree(project_root, target_folder, ignore_dirs, ignore_files_extensions, output_filename)
-    
+
     print(f"✅ Готово! Результат сохранен в: {output_filename}")
 
 

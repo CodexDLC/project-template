@@ -1,5 +1,7 @@
 from aiogram.fsm.state import State, StatesGroup
+
 from src.telegram_bot.features.errors.logic.orchestrator import ErrorOrchestrator
+
 
 # 1. Определение состояний
 class ErrorStates(StatesGroup):
