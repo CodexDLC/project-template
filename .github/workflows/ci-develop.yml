@@ -1,0 +1,33 @@
+name: CI Develop (Linting)
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  lint:
+    name: Fast Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Node.js и Prettier убрали, так как мы бэкендеры :)
+
+      - name: Install dependencies
+        run: |
+          # Устанавливаем ВСЕ зависимости (включая dev) из файла с зафиксированными версиями
+          pip install -r requirements-dev.txt
+          
+          # Доустанавливаем типы на всякий случай
+          pip install types-passlib types-python-jose
+
+      - name: Run Ruff (Backend Style)
+        run: ruff check backend/
+
+      - name: Run Mypy (Backend Types)
+        run: mypy backend/

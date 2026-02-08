@@ -1,11 +1,11 @@
-# Database Documentation
+# 📂 Database Infrastructure
 
-This folder contains documentation regarding the database layer:
+[⬅️ Back](../README.md) | [🏠 Docs Root](../../../../README.md)
 
-- Database schemas (ER diagrams)
-- Migration strategies (Alembic, etc.)
-- Backup and recovery procedures
-- Data seeding and fixtures
-- Database connection settings
+Documentation regarding the database layer infrastructure.
 
-When modifying the database architecture, please update the documentation here.
+## 🗺️ Module Map
+
+| Component | Description |
+|:---|:---|
+| **[📄 Connection](./connection.md)** | Connection strings, drivers (asyncpg), and providers (Neon) |

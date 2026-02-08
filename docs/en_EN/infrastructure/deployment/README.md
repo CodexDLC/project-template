@@ -1,11 +1,13 @@
-# Deployment Documentation
+# 📂 Deployment Documentation
 
-This folder contains documentation regarding project deployment:
+[⬅️ Back](../README.md) | [🏠 Docs Root](../../../README.md)
 
-- Docker and docker-compose configurations
-- CI/CD pipelines (GitHub Actions, GitLab CI)
-- Nginx/Apache settings
-- Environments: dev, staging, production
-- Secrets and environment variables management
+This folder contains documentation regarding project deployment, infrastructure, and automation.
 
-When adding new infrastructure components, please create a corresponding file here.
+## 🗺️ Module Map
+
+| Component | Description |
+|:---|:---|
+| **[📂 FastAPI](./fast_api/README.md)** | Backend container and orchestration |
+| **[📂 Nginx](./nginx/README.md)** | Web server and reverse proxy configuration |
+| **[📂 CI/CD](./ci_cd/README.md)** | GitHub Actions pipelines |

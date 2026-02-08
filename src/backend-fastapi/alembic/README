@@ -1,0 +1,15 @@
+## Database Migrations
+
+This project uses Alembic for database migrations.
+
+### Running migrations manually:
+
+```bash
+# Apply all migrations
+docker-compose exec backend alembic upgrade head
+
+# Create new migration after model changes
+docker-compose exec backend alembic revision --autogenerate -m "Description"
+
+# Check current version
+docker-compose exec backend alembic current

@@ -1,0 +1,10 @@
+README.md
+*.md
+.git
+.github
+backend/
+docs/
+tests/
+venv/
+.venv/
+__pycache__/
