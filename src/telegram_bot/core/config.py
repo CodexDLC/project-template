@@ -24,7 +24,16 @@ class BotSettings(CommonSettings):
     # ID владельцев бота (администраторов бизнеса), через запятую
     owner_ids: str = ""
 
-    # --- Backend API ---
+    # --- Data mode ---
+    # "api"    — bot talks to FastAPI/Django backend via REST (no direct DB)
+    # "direct" — bot has its own database (uses SQLAlchemy + Alembic)
+    BOT_DATA_MODE: str = "api"
+
+    # --- Database (only when BOT_DATA_MODE=direct) ---
+    DATABASE_URL: str | None = None
+    DB_SCHEMA: str = "bot_app"  # PostgreSQL schema for table isolation
+
+    # --- Backend API (only when BOT_DATA_MODE=api) ---
     backend_api_url: str = "http://localhost:8000"
     backend_api_key: str | None = None
     backend_api_timeout: float = 10.0

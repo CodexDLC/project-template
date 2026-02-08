@@ -1,101 +1,296 @@
-# 🏗️ Codex Project Template
+# Project Template
 
 [🇷🇺 Русский](./README-RU.md)
 
-> **Universal Monorepo Boilerplate**: Django / FastAPI + React / Vue + DevOps.
-
-This repository is the foundation for starting new projects. It contains a configured folder structure, ready-made Docker/CI configurations, and strict documentation standards.
+> **Modular Monorepo Template**: Django / FastAPI / Telegram Bot — with installer, Docker, CI/CD, and PostgreSQL schema isolation.
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
-Do not clone this repository manually for work! Use the initialization script to create a clean project.
-
-### 1. Clone the Template
+### 1. Clone
 
 ```bash
-git clone https://github.com/codexdlc/project-template.git my-new-project
-cd my-new-project
+git clone https://github.com/codexdlc/project-template.git my-project
+cd my-project
 ```
 
-### 2. Run Initializer
-
-The script will ask which stack you need (Django or FastAPI), whether you need media functions (S3-mode), and will remove everything unnecessary.
+### 2. Install dependencies
 
 ```bash
-python tools/init_project.py
+pip install poetry
+poetry install --with dev
 ```
 
-**What the script does:**
-*   🗑️ Removes unused backend (e.g., Django if you chose FastAPI).
-*   ⚙️ Generates a base `.env`.
-*   🧹 Cleans git history (optional).
-*   📦 Renames the project in configs.
-
-### 3. Start Environment
+### 3. Run the installer
 
 ```bash
-cd deploy
-docker-compose up -d --build
+python -m tools.init_project
+```
+
+The interactive CLI will ask:
+- **Project name** — renames configs, pyproject.toml, etc.
+- **Backend** — FastAPI, Django, or none
+- **Telegram Bot** — include or remove
+- **Git init** — create initial commits
+
+### 4. What the installer does
+
+1. **Poetry** — installs dependencies, removes unused groups (e.g. `django` group if FastAPI was chosen)
+2. **Scaffolder** — generates `deploy/`, `.github/workflows/`, `.env` from `.tpl` templates
+3. **Backend installer** — sets up the chosen framework (FastAPI is ready; Django is built from templates)
+4. **Bot installer** — configures the Telegram bot module
+5. **Cleaner** — removes unused modules (src dirs, deploy dirs, docs)
+6. **Renamer** — replaces `project-template` marker with your project name
+7. **Finalizer** — creates two git commits: `Install` (full state) → `Activate` (clean project)
+
+---
+
+## Project Structure
+
+```
+project-template/
+├── src/
+│   ├── backend-fastapi/      # FastAPI backend (async, Clean Architecture)
+│   ├── backend-django/       # Django backend (features-based structure)
+│   ├── telegram_bot/         # Telegram Bot (aiogram 3.x)
+│   └── shared/               # Shared code: config, logging, constants
+├── tools/
+│   ├── init_project/         # Modular installer (kept after install)
+│   │   ├── actions/          # Poetry, Docker, Scaffolder, Cleaner, Renamer, Finalizer
+│   │   └── installers/       # Per-framework installers + resources/
+│   ├── dev/                  # Developer utilities
+│   └── migration_agent.py    # Migrate existing projects to this template
+├── scripts/
+│   ├── init_db_schemas.sql   # PostgreSQL schema isolation setup
+│   └── generate_project_tree.py
+├── deploy/                   # Generated: docker-compose, nginx (from .tpl)
+├── .github/workflows/        # Generated: CI/CD pipelines (from .tpl)
+├── docs/                     # Documentation (en_EN / ru_RU)
+├── data/                     # Volumes, local data (gitignored)
+└── pyproject.toml            # Poetry, Ruff, Mypy, Pytest configs
 ```
 
 ---
 
-## 🧱 Architecture & Structure
+## Backends
 
-The project follows the Monorepo methodology with clear separation of concerns.
+### FastAPI (async REST API)
 
-| Directory | Description |
-| :--- | :--- |
-| **📂 src/** | Source code modules (backend, bot, frontend). |
-| **📂 deploy/** | Docker-compose, Nginx configs, environment variables. |
-| **📂 docs/** | Documentation (see below). |
-| **📂 tools/** | Developer utilities and init scripts. |
-| **📂 scripts/** | CI/CD scripts, linters, report generators. |
+- **Architecture**: Clean Architecture with layers (routers → services → repositories)
+- **Database**: SQLAlchemy 2.0 (async) + Alembic migrations
+- **Config**: Pydantic Settings v2, `.env` file
+- **Key features**: JWT auth, async PostgreSQL (asyncpg), Pydantic v2 schemas
+
+```
+src/backend-fastapi/
+├── api/                  # Routers (endpoints)
+├── core/                 # Config, database, security
+├── database/
+│   ├── models/           # SQLAlchemy models
+│   └── migrations/       # Alembic (env.py, versions/)
+├── repositories/         # Data access layer
+├── schemas/              # Pydantic request/response models
+└── services/             # Business logic
+```
+
+### Django (full-stack)
+
+- **Architecture**: Features-based (not flat apps)
+- **Settings**: Split into `base.py` / `dev.py` / `prod.py`
+- **Key features**: Django Admin, ORM, split settings, feature isolation
+
+```
+src/backend-django/
+├── core/                 # Project core (urls, wsgi, asgi)
+│   └── settings/         # base.py, dev.py, prod.py
+├── features/
+│   ├── main/             # Main feature (views/, selectors/, urls)
+│   └── system/           # System models (mixins, base models)
+├── static/               # CSS, JS, images (separate from features)
+├── templates/            # Django templates (separate from features)
+└── locale/               # i18n translations
+```
+
+### Telegram Bot (aiogram 3.x)
+
+- **Framework**: aiogram 3 with Dispatcher + Router pattern
+- **Data modes**: `BOT_DATA_MODE=api` (REST calls to backend) or `direct` (own database)
+- **Database**: SQLAlchemy + Alembic (when `direct` mode)
+- **Config**: Pydantic Settings, shared `.env` with FastAPI
+
+```
+src/telegram_bot/
+├── core/                 # Config, bot instance
+├── handlers/             # Message/callback handlers
+├── keyboards/            # Inline/reply keyboards
+├── middlewares/          # Aiogram middlewares
+├── services/             # Business logic / API clients
+└── database/             # Models + Alembic migrations (direct mode)
+```
 
 ---
 
-## 📚 Documentation: The Twin Realms
+## Database & Schema Isolation
 
-We use a unique approach to documentation.
+All backends can share **one PostgreSQL database** (e.g. Neon) using separate schemas:
 
-### 🇬🇧 English (Technical Truth)
-For schemas, API contracts, and technical details. Mandatory for developers.
+| Backend  | Schema        | Config variable |
+| :------- | :------------ | :-------------- |
+| FastAPI  | `fastapi_app` | `DB_SCHEMA`     |
+| Django   | `django_app`  | `DB_SCHEMA`     |
+| Bot      | `bot_app`     | `DB_SCHEMA`     |
 
-*   **[📂 Documentation Root](./docs/README.md)**
-*   **[🏗️ Infrastructure & Deploy](./docs/en_EN/infrastructure/README.md)**
-*   **[🧠 Backend Architecture](./docs/en_EN/architecture/backend-fastapi/README.md)**
+### Setup
 
----
+```bash
+# Create schemas (run once on new database)
+psql $DATABASE_URL -f scripts/init_db_schemas.sql
+```
 
-## 🛠️ Backend Options
-
-The template supports two core modes (selected during initialization):
-
-### 1. 🐍 FastAPI (Modern & Async)
-Based on Clean Architecture.
-
-*   **Modes:**
-    *   *Universal:* Full API with users, likes, and social mechanics.
-    *   *Headless (SAS/S3):* Microservice mode for file storage (User + Media only).
-*   **Features:** JWT Auth, Media CAS Storage (De-duplication), Alembic, Pydantic v2.
-
-### 2. 🦄 Django (Batteries Included)
-Classic approach for fast MVPs and admin panels.
-
-*   **Structure:** Split Settings, Domains instead of Apps.
-*   **Features:** Django Admin, ORM, DRF.
+Each backend uses `search_path` to isolate tables:
+- **FastAPI**: `connect_args.server_settings.search_path`
+- **Django**: `DATABASES.default.OPTIONS.options` (prod.py)
+- **Bot**: same as FastAPI pattern
 
 ---
 
-## ✅ Pre-flight Checklist
+## Migrations
 
-Before the first commit, ensure that:
+Migrations run in **CI/CD pipeline**, not at application startup (prevents race conditions).
 
-- [ ] You ran `python tools/init_project.py`.
-- [ ] The `.env` file is created in `deploy/` folder.
-- [ ] Documentation passed linting: `python scripts/lint_docs.py`.
+### FastAPI (Alembic)
+
+```bash
+cd src/backend-fastapi
+
+# Create migration
+alembic revision --autogenerate -m "add_users_table"
+
+# Apply
+alembic upgrade head
+
+# Docker
+docker compose run --rm -T backend alembic upgrade head
+```
+
+### Django
+
+```bash
+cd src/backend-django
+
+python manage.py makemigrations
+python manage.py migrate
+
+# Docker
+docker compose run --rm -T backend python manage.py migrate --noinput
+```
+
+### Bot (Alembic, direct mode only)
+
+```bash
+cd src/telegram_bot
+
+alembic revision --autogenerate -m "add_bot_users"
+alembic upgrade head
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+- **FastAPI + Bot** — shared root `.env` (loaded via `pydantic-settings`)
+- **Django** — own `src/backend-django/.env` (loaded via `python-dotenv`)
+
+Key variables:
+
+| Variable        | Description              | Default        |
+| :-------------- | :----------------------- | :------------- |
+| `DATABASE_URL`  | PostgreSQL connection    | (required)     |
+| `DB_SCHEMA`     | Schema name              | per-backend    |
+| `BOT_TOKEN`     | Telegram bot token       | (required)     |
+| `BOT_DATA_MODE` | `api` or `direct`        | `api`          |
+| `SECRET_KEY`    | Django/JWT secret        | (required)     |
+| `DEBUG`         | Debug mode               | `True`         |
+
+### Deploy & CI/CD
+
+Docker and GitHub Actions configs are **generated** by the installer from `.tpl` templates:
+
+```
+tools/init_project/actions/docker/resources/    → deploy/
+tools/init_project/actions/scaffolder/resources/ → .github/workflows/
+```
+
+The CD pipeline runs migrations **before** `docker compose up -d`.
+
+---
+
+## Tools
+
+### Installer (`tools/init_project/`)
+
+The installer is **kept after installation** — not deleted. You can re-use it or reference its templates.
+
+### Add Module (`tools/init_project/add_module.py`)
+
+Restore a previously removed module (e.g. add bot to a FastAPI-only project):
+
+```bash
+python -m tools.init_project.add_module telegram_bot
+```
+
+Uses `git checkout` from the Install commit to restore files.
+
+### Migration Agent (`tools/migration_agent.py`)
+
+Migrate an existing project to this template structure:
+
+```bash
+python tools/migration_agent.py /path/to/existing-project
+```
+
+Analyzes your project, creates standard directories, transfers modules, and generates a TODO report for manual steps.
+
+---
+
+## Development
+
+```bash
+# Linting
+ruff check src/
+ruff format src/
+
+# Type checking
+mypy src/
+
+# Tests
+pytest
+
+# Pre-commit hooks
+pre-commit install
+pre-commit run --all-files
+```
+
+Tool configs are in `pyproject.toml` (Ruff, Mypy, Pytest).
+
+---
+
+## Tech Stack
+
+| Component  | Technology                                     |
+| :--------- | :--------------------------------------------- |
+| Python     | 3.13+                                          |
+| FastAPI    | FastAPI, SQLAlchemy 2.0, asyncpg, Alembic      |
+| Django     | Django 5.1, psycopg2, gunicorn                 |
+| Bot        | aiogram 3.x, arq                               |
+| Database   | PostgreSQL (Neon-compatible), schema isolation  |
+| Config     | Pydantic Settings v2, python-dotenv (Django)    |
+| Build      | Poetry (PEP 621)                               |
+| Linting    | Ruff, Mypy, pre-commit                         |
+| CI/CD      | GitHub Actions, Docker Compose                  |
 
 ---
 
