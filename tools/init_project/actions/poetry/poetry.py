@@ -27,6 +27,8 @@ class PoetryAction:
 
         if ctx.backend != "fastapi":
             groups_to_remove.append("fastapi")
+        if ctx.backend != "django":
+            groups_to_remove.append("django")
         if not ctx.include_bot:
             groups_to_remove.append("bot")
 
