@@ -11,15 +11,21 @@
 ### 1. Clone
 
 ```bash
+# Into a new folder:
 git clone https://github.com/codexdlc/project-template.git my-project
 cd my-project
+
+# Or into the current folder:
+mkdir my-project && cd my-project
+git clone https://github.com/codexdlc/project-template.git .
 ```
 
 ### 2. Install dependencies
 
 ```bash
 pip install poetry
-poetry install --with dev
+poetry config virtualenvs.in-project true
+poetry install --extras "fastapi bot dev"   # or: --extras "django bot dev"
 ```
 
 ### 3. Run the installer

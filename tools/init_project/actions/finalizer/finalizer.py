@@ -13,11 +13,10 @@ Flow:
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from pathlib import Path
 
-from tools.init_project.config import InstallContext
+from tools.init_project.config import InstallContext, safe_rmtree
 
 
 class FinalizerAction:
@@ -37,7 +36,7 @@ class FinalizerAction:
         # Удаляем .git от шаблона если есть
         git_dir = root / ".git"
         if git_dir.exists():
-            shutil.rmtree(git_dir)
+            safe_rmtree(git_dir)
 
         # Init + первый коммит
         self._run(["git", "init", "-b", "main"], root)

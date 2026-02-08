@@ -11,15 +11,21 @@
 ### 1. Клонирование
 
 ```bash
+# В новую папку:
 git clone https://github.com/codexdlc/project-template.git my-project
 cd my-project
+
+# Или в текущую папку:
+mkdir my-project && cd my-project
+git clone https://github.com/codexdlc/project-template.git .
 ```
 
 ### 2. Установка зависимостей
 
 ```bash
 pip install poetry
-poetry install --with dev
+poetry config virtualenvs.in-project true
+poetry install --extras "fastapi bot dev"   # или: --extras "django bot dev"
 ```
 
 ### 3. Запуск инсталлятора

@@ -7,10 +7,9 @@ Cleaner Action — удаление невыбранных модулей.
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
-from tools.init_project.config import InstallContext, MODULES
+from tools.init_project.config import InstallContext, MODULES, safe_rmtree
 
 
 class CleanerAction:
@@ -45,14 +44,14 @@ class CleanerAction:
             for rel_path in all_dirs:
                 full_path = ctx.project_root / rel_path
                 if full_path.exists():
-                    shutil.rmtree(full_path)
+                    safe_rmtree(full_path)
                     print(f"    🗑️  Removed: {rel_path}")
 
         # Если нет бэкенда вообще — удалить nginx тоже
         if ctx.backend is None:
             nginx_path = ctx.project_root / "deploy" / "nginx"
             if nginx_path.exists():
-                shutil.rmtree(nginx_path)
+                safe_rmtree(nginx_path)
                 print("    🗑️  Removed: deploy/nginx")
 
         # Очистка пустых deploy/ если всё удалено

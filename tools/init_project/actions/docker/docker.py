@@ -7,11 +7,10 @@ Docker Action — генерация Docker файлов на основе вы�
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from textwrap import dedent, indent
 
-from tools.init_project.config import InstallContext
+from tools.init_project.config import InstallContext, safe_rmtree
 
 # Путь к ресурсам относительно этого файла
 RESOURCES = Path(__file__).parent / "resources"
@@ -27,7 +26,7 @@ class DockerAction:
 
         # Очищаем старый deploy (из шаблона-донора)
         if deploy.exists():
-            shutil.rmtree(deploy)
+            safe_rmtree(deploy)
         deploy.mkdir(parents=True)
 
         # Переменные для подстановки
@@ -115,8 +114,7 @@ class DockerAction:
 
         # Удаляем старые workflows
         if workflows_dir.exists():
-            import shutil as _shutil
-            _shutil.rmtree(workflows_dir)
+            safe_rmtree(workflows_dir)
         workflows_dir.mkdir(parents=True, exist_ok=True)
 
         # Общие переменные для CI
