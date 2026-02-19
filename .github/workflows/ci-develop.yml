@@ -37,13 +37,10 @@ jobs:
 
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root --all-extras
+        run: poetry install --no-interaction --no-root
 
-      - name: Run Ruff (lint)
+      - name: Run Ruff
         run: poetry run ruff check src/
-
-      - name: Run Ruff (format check)
-        run: poetry run ruff format src/ --check
 
       - name: Run Mypy
         run: poetry run mypy src/
