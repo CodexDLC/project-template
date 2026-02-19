@@ -2,49 +2,69 @@
 # {{PROJECT_NAME}} — Root Environment
 # ═══════════════════════════════════════════
 
-# === ENVIRONMENT ===
-# development - для локальной разработки (localhost)
-# production - для Docker/продакшена (service names)
+# === 1. GENERAL ===
+# development | production
 ENVIRONMENT=production
+DEBUG=False
+DOMAIN_NAME={{PROJECT_NAME}}.example.com
+SITE_BASE_URL=https://{{PROJECT_NAME}}.example.com/
 
-# === POSTGRESQL (База данных) ===
+# === 2. DJANGO SETTINGS ===
+SECRET_KEY={{DJANGO_SECRET_KEY}}
+DJANGO_SETTINGS_MODULE=core.settings.prod
+ALLOWED_HOSTS=localhost,127.0.0.1,backend
+
+# === 3. POSTGRESQL ===
 POSTGRES_DB={{PROJECT_NAME}}_db
 POSTGRES_USER={{PROJECT_NAME}}_user
 POSTGRES_PASSWORD={{POSTGRES_PASSWORD}}
 POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
+DATABASE_URL=postgresql://{{PROJECT_NAME}}_user:{{POSTGRES_PASSWORD}}@postgres:5432/{{PROJECT_NAME}}_db
 
-# === REDIS (Кэш и очереди) ===
+# === 4. REDIS ===
 REDIS_HOST=redis
 REDIS_PORT=6379
-# REDIS_PASSWORD=secret
+# REDIS_PASSWORD=
+REDIS_URL=redis://redis:6379/0
 
-# === TELEGRAM BOT ===
+# === 5. TELEGRAM BOT ===
 BOT_TOKEN={{BOT_TOKEN}}
-# Режим работы бота: 'api' или 'direct'
-BOT_DATA_MODE=api
 
-# === TELEGRAM CHANNELS & ROLES ===
-TELEGRAM_ADMIN_CHANNEL_ID=-1003363984639
-TELEGRAM_TOPICS={"hair": 2, "nails": 4, "face": 6, "eyes": 8, "body": 10, "depilation": 12}
-telegram_notification_topic_id=1
-TELEGRAM_ADMIN_ID=123456789
-
-# ID разработчиков (через запятую)
-SUPERUSER_IDS=123456789
-# ID владельцев (через запятую)
-OWNER_IDS=123456789
-
-# === BACKEND API (Связь Бота с Джанго) ===
+# Bot <-> Backend API
 BACKEND_API_URL=http://backend:8000
 BACKEND_API_KEY={{BACKEND_API_KEY}}
+BOT_API_KEY={{BOT_API_KEY}}
 
-# === DJANGO SETTINGS ===
-SECRET_KEY={{DJANGO_SECRET_KEY}}
-ALLOWED_HOSTS=localhost,127.0.0.1,backend
+# Roles (comma-separated Telegram IDs)
+SUPERUSER_IDS=
+OWNER_IDS=
 
-# === DOCKER IMAGES ===
+# Notification channel
+TELEGRAM_ADMIN_CHANNEL_ID=
+TELEGRAM_NOTIFICATION_TOPIC_ID=1
+# TELEGRAM_TOPICS={"topic_name": 2}
+
+# === 6. WORKERS & EMAIL (arq) ===
+SMTP_HOST=smtp.example.com
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_USE_TLS=True
+
+# === 7. DOCKER IMAGES ===
 DOCKER_IMAGE_BACKEND=my-registry/{{PROJECT_NAME}}-backend:1.0.0
 DOCKER_IMAGE_BOT=my-registry/{{PROJECT_NAME}}-bot:1.0.0
 DOCKER_IMAGE_WORKER=my-registry/{{PROJECT_NAME}}-worker:1.0.0
 DOCKER_IMAGE_NGINX=my-registry/{{PROJECT_NAME}}-nginx:1.0.0
+
+# === 8. MONITORING (Grafana Cloud) ===
+# GCLOUD_HOSTED_METRICS_URL=
+# GCLOUD_HOSTED_METRICS_ID=
+# GCLOUD_HOSTED_LOGS_URL=
+# GCLOUD_HOSTED_LOGS_ID=
+# GCLOUD_RW_API_KEY=
+
+# === 9. LOGGING ===
+LOG_LEVEL=INFO

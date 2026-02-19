@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Paths
 # ═══════════════════════════════════════════
 
-# src/backend-django/
+# src/backend_django/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Load .env from backend root

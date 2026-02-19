@@ -38,7 +38,7 @@ USER appuser
 
 ENV PATH="/venv/bin:$PATH"
 ENV PYTHONPATH="/app:$PYTHONPATH"
-ENV DJANGO_SETTINGS_MODULE="core.settings.dev"
+ENV DJANGO_SETTINGS_MODULE="core.settings.prod"
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1

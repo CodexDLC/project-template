@@ -5,8 +5,7 @@ WORKDIR /app
 RUN pip install poetry poetry-plugin-export
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry lock
-RUN poetry export --with bot,shared --without-hashes --format=requirements.txt > requirements.txt
+RUN poetry export --with workers,shared --without-hashes --format=requirements.txt > requirements.txt
 
 RUN python -m venv /app/.venv
 RUN /app/.venv/bin/pip install --no-cache-dir -r requirements.txt

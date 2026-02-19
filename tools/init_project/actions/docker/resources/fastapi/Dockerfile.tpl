@@ -35,7 +35,7 @@ RUN useradd -m -u 1000 appuser
 COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
-COPY src/backend-fastapi /app/src/backend-fastapi
+COPY src/backend_fastapi /app/src/backend_fastapi
 COPY src/shared /app/src/shared
 
 # Create data directories
@@ -53,4 +53,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Start command
-CMD ["uvicorn", "src.backend-fastapi.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+CMD ["uvicorn", "src.backend_fastapi.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
