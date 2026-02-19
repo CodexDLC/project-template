@@ -256,14 +256,13 @@ class DockerAction:
             main_vars,
         )
 
-        # cd-release.yml — build+push для каждого образа
+        # deploy-production-tag.yml — build+push + SSH deploy
         build_push_steps: list[str] = []
         docker_image_envs: list[str] = []
         docker_image_env_names: list[str] = []
         update_var_calls: list[str] = []
 
         def _add_image(svc_label: str, dockerfile: str, image_suffix: str) -> None:
-            """Добавляет шаг build+push и переменные для одного образа."""
             env_var = f"DOCKER_IMAGE_{svc_label.upper()}"
             build_push_steps.append(
                 dedent(f"""\
@@ -296,43 +295,49 @@ class DockerAction:
             _add_image("bot", "deploy/bot/Dockerfile", "-bot")
             _add_image("worker", "deploy/worker/Dockerfile", "-worker")
 
-        # Форматируем блоки с отступом 6 пробелов под steps:
         build_push_block = "\n\n".join(
             "\n".join(f"      {line}" for line in step.splitlines()) for step in build_push_steps
         )
 
-        # Комментарий с миграциями в cd-release — зависит от бэкенда
         if ctx.backend == "django":
-            migration_comment = dedent("""\
-  #           # Run migrations
-  #           docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py migrate --noinput
-  #           docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput""")
-        elif ctx.backend == "fastapi":
-            migration_comment = dedent("""\
-  #           # Run Alembic migrations
-  #           docker compose -f docker-compose.prod.yml run --rm -T backend alembic upgrade head""")
-        else:
-            migration_comment = ""
+            migration_steps = dedent("""\
+            echo "🔄 Running migrations..."
+            if ! docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py migrate --noinput; then
+              echo "❌ Migration failed! Aborting deployment."
+              exit 1
+            fi
 
-        release_vars = {
+            echo "📦 Collecting static files..."
+            docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput""")
+        elif ctx.backend == "fastapi":
+            migration_steps = dedent("""\
+            echo "🔄 Running migrations..."
+            if ! docker compose -f docker-compose.prod.yml run --rm -T backend alembic upgrade head; then
+              echo "❌ Migration failed! Aborting deployment."
+              exit 1
+            fi""")
+        else:
+            migration_steps = ""
+
+        indented_migrations = "\n".join(
+            f"            {line}" if line.strip() else "" for line in migration_steps.splitlines()
+        )
+
+        deploy_vars = {
             **variables,
             "{{BUILD_PUSH_STEPS}}": build_push_block,
-            "{{MIGRATION_STEPS_COMMENT}}": migration_comment,
+            "{{DOCKER_IMAGE_ENVS}}": "\n".join(docker_image_envs),
+            "{{DOCKER_IMAGE_ENV_NAMES}}": ",".join(docker_image_env_names),
+            "{{UPDATE_VAR_CALLS}}": "\n".join(update_var_calls),
+            "{{MIGRATION_STEPS}}": indented_migrations,
         }
         self._render_template(
-            RESOURCES / "github" / "cd-release.yml.tpl",
-            workflows_dir / "cd-release.yml",
-            release_vars,
+            RESOURCES / "github" / "deploy-production-tag.yml.tpl",
+            workflows_dir / "deploy-production-tag.yml",
+            deploy_vars,
         )
 
-        # check-release-source.yml — копируем как есть
-        self._render_template(
-            RESOURCES / "github" / "check-release-source.yml",
-            workflows_dir / "check-release-source.yml",
-            {},
-        )
-
-        print("    📄 Generated: .github/workflows/ (4 files)")
+        print("    📄 Generated: .github/workflows/ (3 files)")
 
     # ─────────────────────────────────────────
     # Compose generation — секционная сборка
