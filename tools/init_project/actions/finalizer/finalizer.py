@@ -14,9 +14,12 @@ Flow:
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tools.init_project.config import InstallContext, safe_rmtree
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class FinalizerAction:

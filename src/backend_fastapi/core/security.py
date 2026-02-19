@@ -31,7 +31,7 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
 
     try:
         encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
-        return encoded_jwt
+        return str(encoded_jwt)
     except Exception as exc:
         logger.error(f"Security | action=create_token_failed error={exc}")
         raise exc
@@ -41,11 +41,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verifies a plain password against a hashed password.
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return bool(pwd_context.verify(plain_password, hashed_password))
 
 
 def get_password_hash(password: str) -> str:
     """
     Hashes a password using bcrypt.
     """
-    return pwd_context.hash(password)
+    return str(pwd_context.hash(password))

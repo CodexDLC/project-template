@@ -21,7 +21,7 @@ class BaseStateManager:
         data = await self.state.get_data()
         return cast("dict[str, Any]", data.get(self.storage_key, {}))
 
-    async def update(self, **kwargs) -> dict[str, Any]:
+    async def update(self, **kwargs: Any) -> dict[str, Any]:
         """
         Обновляет черновик переданными полями.
         Возвращает обновленный словарь.

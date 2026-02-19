@@ -11,7 +11,10 @@ import os
 import shutil
 import stat
 from dataclasses import dataclass, field
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _on_rmtree_error(func: object, path: str, exc_info: object) -> None:
@@ -31,7 +34,7 @@ class InstallContext:
 
     project_root: Path
     project_name: str
-    backend: str | None       # "fastapi" | "django" | None
+    backend: str | None  # "fastapi" | "django" | None
     include_bot: bool
     init_git: bool
 
@@ -40,9 +43,11 @@ class InstallContext:
 # Реестр модулей: что удалять если модуль не выбран
 # ──────────────────────────────────────────────
 
+
 @dataclass
 class ModuleConfig:
     """Описание одного модуля шаблона."""
+
     name: str
     src_dirs: list[str] = field(default_factory=list)
     deploy_dirs: list[str] = field(default_factory=list)

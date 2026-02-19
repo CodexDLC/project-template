@@ -1,23 +1,24 @@
 """
 Конфигурация подключаемых фич и middleware.
-Аналог Django INSTALLED_APPS — бот при запуске читает эти списки
-и автоматически подключает роуты и middleware.
 """
 
-# Список фич для автоподключения.
-# Каждая строка — путь к пакету фичи относительно telegram_bot/.
-# Пакет должен содержать handlers/__init__.py с экспортом `router`.
+# Фичи с интерфейсом (Aiogram роутеры)
 INSTALLED_FEATURES: list[str] = [
-    "features.commands",
-    "features.bot_menu",
-    "features.errors",
+    "features.telegram.commands",
+    "features.telegram.bot_menu",
+    "features.telegram.notifications",
 ]
 
-# Список middleware в порядке регистрации.
-# Порядок важен: первый в списке оборачивает все последующие.
+# Фичи-слушатели (Redis Stream)
+INSTALLED_REDIS_FEATURES: list[str] = [
+    "features.redis.notifications",
+    "features.redis.errors",
+]
+
+# Список middleware (модули, содержащие функцию setup)
 MIDDLEWARE_CLASSES: list[str] = [
-    "middlewares.user_validation.UserValidationMiddleware",
-    "middlewares.throttling.ThrottlingMiddleware",
-    "middlewares.security.SecurityMiddleware",
-    "middlewares.container.ContainerMiddleware",
+    "middlewares.user_validation",
+    "middlewares.throttling",
+    "middlewares.security",
+    "middlewares.container",
 ]

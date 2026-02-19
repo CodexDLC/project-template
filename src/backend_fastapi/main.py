@@ -87,7 +87,8 @@ elif settings.ALLOWED_ORIGINS:
 # --- EXCEPTION HANDLERS ---
 
 # 1. Наши кастомные ошибки (бизнес-логика)
-app.add_exception_handler(BaseAPIException, api_exception_handler) # type: ignore
+app.add_exception_handler(BaseAPIException, api_exception_handler)  # type: ignore
+
 
 # 2. Глобальный перехватчик всех остальных ошибок (Last Resort)
 @app.exception_handler(Exception)
@@ -103,10 +104,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         content={
             "error": {
                 "code": "internal_server_error",
-                "message": "An unexpected error occurred. Please try again later."
+                "message": "An unexpected error occurred. Please try again later.",
             }
         },
     )
+
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

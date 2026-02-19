@@ -1,34 +1,31 @@
 # === STAGE 1: Builder ===
 FROM python:{{PYTHON_VERSION}}-slim AS builder
-
 WORKDIR /app
 
-RUN python -m venv /app/.venv
+RUN pip install poetry poetry-plugin-export
 
-# Install dependencies via pyproject.toml
-COPY pyproject.toml ./
-RUN /app/.venv/bin/pip install --no-cache-dir ".[bot]"
+COPY pyproject.toml poetry.lock ./
+RUN poetry lock
+RUN poetry export --with bot,shared --without-hashes --format=requirements.txt > requirements.txt
+
+RUN python -m venv /app/.venv
+RUN /app/.venv/bin/pip install --no-cache-dir -r requirements.txt
 
 # === STAGE 2: Runtime ===
 FROM python:{{PYTHON_VERSION}}-slim
-
 WORKDIR /app
 
-# Create non-root user
 RUN useradd -m -u 1000 appuser
 
-# Copy venv from builder
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy application code
-COPY src/telegram_bot /app/src/telegram_bot
+COPY src/workers /app/src/workers
 COPY src/shared /app/src/shared
 
-RUN chown -R appuser:appuser /app
+# Create logs directory and set permissions
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app
 
 USER appuser
 
 ENV PATH="/app/.venv/bin:$PATH"
-
-# Start ARQ worker
-CMD ["python", "-m", "src.telegram_bot.services.worker.bot_worker"]
+ENV PYTHONPATH="/app:$PYTHONPATH"

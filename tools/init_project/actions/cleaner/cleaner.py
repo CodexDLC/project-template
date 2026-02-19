@@ -33,11 +33,7 @@ class CleanerAction:
             if not module_config:
                 continue
 
-            all_dirs = (
-                module_config.src_dirs
-                + module_config.deploy_dirs
-                + module_config.doc_dirs
-            )
+            all_dirs = module_config.src_dirs + module_config.deploy_dirs + module_config.doc_dirs
 
             for rel_path in all_dirs:
                 full_path = ctx.project_root / rel_path
@@ -52,11 +48,4 @@ class CleanerAction:
                 safe_rmtree(nginx_path)
                 print("    🗑️  Removed: deploy/nginx")
 
-        # Очистка пустых deploy/ если всё удалено
-        deploy_path = ctx.project_root / "deploy"
-        if deploy_path.exists():
-            remaining = [
-                p for p in deploy_path.iterdir()
-                if p.is_dir() and p.name != "__pycache__"
-            ]
-            # Если остался только README.md — оставляем как есть
+        # deploy/ остаётся если есть — README.md внутри достаточно

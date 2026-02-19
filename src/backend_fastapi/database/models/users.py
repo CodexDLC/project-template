@@ -43,9 +43,7 @@ class User(Base):
     social_accounts: Mapped[list["SocialAccount"]] = relationship(
         "SocialAccount", back_populates="user", cascade="all, delete-orphan"
     )
-    images: Mapped[list["Image"]] = relationship(
-        "Image", back_populates="user", cascade="all, delete-orphan"
-    )
+    images: Mapped[list["Image"]] = relationship("Image", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

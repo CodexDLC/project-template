@@ -1,10 +1,13 @@
 import importlib
+from types import ModuleType
 from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger as log
 
 from src.telegram_bot.core.garbage_collector import GarbageStateRegistry
-from src.telegram_bot.core.settings import INSTALLED_FEATURES
+from src.telegram_bot.core.settings import INSTALLED_FEATURES, INSTALLED_REDIS_FEATURES
+from src.telegram_bot.services.redis.dispatcher import bot_redis_dispatcher
+from src.telegram_bot.services.redis.router import RedisRouter
 
 if TYPE_CHECKING:
     from src.telegram_bot.core.container import BotContainer
@@ -13,125 +16,103 @@ if TYPE_CHECKING:
 class FeatureDiscoveryService:
     """
     Сервис для автоматического обнаружения конфигураций фич.
-    Сканирует INSTALLED_FEATURES и ищет:
-    1. Конфигурацию меню (menu.py -> MENU_CONFIG)
-    2. Настройки Garbage Collector (feature_setting.py -> GARBAGE_COLLECT / STATES)
-    3. Фабрики оркестраторов (feature_setting.py -> create_orchestrator)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._loaded_features: set[str] = set()
 
-    def discover_all(self):
-        """
-        Запускает полный цикл обнаружения.
-        Обычно вызывается при старте бота.
-        """
+    def discover_all(self) -> None:
         for feature_path in INSTALLED_FEATURES:
             self._discover_menu(feature_path)
             self._discover_garbage_states(feature_path)
 
+        for feature_path in INSTALLED_REDIS_FEATURES:
+            self._discover_redis_handlers(feature_path)
+            self._discover_garbage_states(feature_path)
+
     def create_feature_orchestrators(self, container: "BotContainer") -> dict[str, Any]:
-        """
-        Создаёт оркестраторы для всех фич, у которых есть create_orchestrator() в feature_setting.py.
-        Возвращает словарь {feature_key: orchestrator_instance}.
-        """
         orchestrators: dict[str, Any] = {}
+        configs = [(INSTALLED_FEATURES, ""), (INSTALLED_REDIS_FEATURES, "redis_")]
 
-        for feature_path in INSTALLED_FEATURES:
-            module = self._load_feature_setting(feature_path)
-            if not module:
-                continue
+        for feature_list, prefix in configs:
+            for feature_path in feature_list:
+                module = self._load_feature_setting(feature_path)
+                if not module:
+                    continue
 
-            factory = getattr(module, "create_orchestrator", None)
-            if not factory:
-                continue
+                factory = getattr(module, "create_orchestrator", None)
+                if not factory:
+                    continue
 
-            # Определяем ключ: из MENU_CONFIG или из имени фичи
-            menu_config = getattr(module, "MENU_CONFIG", None)
-            if menu_config and isinstance(menu_config, dict):
-                key = menu_config.get("key", feature_path.split(".")[-1])
-            else:
-                key = feature_path.split(".")[-1]
+                base_name = feature_path.split(".")[-1]
+                key = f"{prefix}{base_name}"
 
-            try:
-                orchestrator = factory(container)
-                orchestrators[key] = orchestrator
-                log.debug(f"FeatureDiscovery | orchestrator_created key='{key}' feature='{feature_path}'")
-            except Exception as e:
-                log.error(f"FeatureDiscovery | orchestrator_error feature='{feature_path}' error='{e}'")
+                try:
+                    orchestrator = factory(container)
+                    orchestrators[key] = orchestrator
+                except Exception as e:
+                    log.error(f"FeatureDiscovery | orchestrator_error feature='{feature_path}' error='{e}'")
 
         return orchestrators
 
-    def get_menu_buttons(self) -> dict[str, dict]:
-        """
-        Возвращает собранные кнопки меню.
-        """
-        buttons = {}
+    def get_menu_buttons(self, is_admin: bool | None = None) -> dict[str, dict[str, Any]]:
+        buttons: dict[str, dict[str, Any]] = {}
         for feature_path in INSTALLED_FEATURES:
             btn = self._discover_menu(feature_path)
             if btn:
+                btn_is_admin = btn.get("is_admin", False)
+                if is_admin is not None and btn_is_admin != is_admin:
+                    continue
                 key = btn.get("key", feature_path)
                 buttons[key] = btn
         return buttons
 
-    def _load_feature_setting(self, feature_path: str):
-        """
-        Загружает модуль feature_setting.py для фичи.
-        Пробует: feature_setting.py → __init__.py
-        """
+    def _load_feature_setting(self, feature_path: str) -> ModuleType | None:
         candidates = [
             f"src.telegram_bot.{feature_path}.feature_setting",
             f"src.telegram_bot.{feature_path}",
         ]
-
         for path in candidates:
             try:
                 return importlib.import_module(path)
             except ImportError:
                 continue
-
         return None
 
-    def _discover_menu(self, feature_path: str) -> dict[Any, Any] | None:
-        """Ищет MENU_CONFIG в menu.py"""
+    def _discover_menu(self, feature_path: str) -> dict[str, Any] | None:
         module_path = f"src.telegram_bot.{feature_path}.menu"
         try:
             module = importlib.import_module(module_path)
             config = getattr(module, "MENU_CONFIG", None)
-            if config and isinstance(config, dict):
-                return cast("dict[Any, Any]", config)
+            if config:
+                return cast("dict[str, Any]", config)
         except ImportError:
-            pass
-        except Exception as e:
-            log.error(f"FeatureDiscovery | menu_error feature='{feature_path}' error='{e}'")
+            module = cast("ModuleType", self._load_feature_setting(feature_path))
+            if module:
+                config = getattr(module, "MENU_CONFIG", None)
+                if config:
+                    return cast("dict[str, Any]", config)
         return None
 
-    def _discover_garbage_states(self, feature_path: str):
-        """
-        Ищет настройки GC в feature_setting.py (или __init__.py).
-        Ожидает:
-        - GARBAGE_COLLECT = True (тогда ищет STATES)
-        - GARBAGE_STATES = [...] (явный список)
-        """
+    def _discover_garbage_states(self, feature_path: str) -> None:
         module = self._load_feature_setting(feature_path)
-
         if not module:
             return
-
-        # 1. Явный список
         garbage_states = getattr(module, "GARBAGE_STATES", None)
         if garbage_states:
             GarbageStateRegistry.register(garbage_states)
-            log.debug(f"FeatureDiscovery | gc_registered explicit feature='{feature_path}'")
             return
-
-        # 2. Флаг + STATES
-        collect_flag = getattr(module, "GARBAGE_COLLECT", False)
-        if collect_flag:
+        if getattr(module, "GARBAGE_COLLECT", False):
             states = getattr(module, "STATES", None)
             if states:
                 GarbageStateRegistry.register(states)
-                log.debug(f"FeatureDiscovery | gc_registered auto feature='{feature_path}'")
-            else:
-                log.warning(f"FeatureDiscovery | gc_warning feature='{feature_path}' GARBAGE_COLLECT=True but no STATES found")
+
+    def _discover_redis_handlers(self, feature_path: str) -> None:
+        module_path = f"src.telegram_bot.{feature_path}.handlers"
+        try:
+            module = importlib.import_module(module_path)
+            redis_router = getattr(module, "redis_router", None)
+            if redis_router and isinstance(redis_router, RedisRouter):
+                bot_redis_dispatcher.include_router(redis_router)
+        except Exception:
+            pass

@@ -10,8 +10,10 @@ BaseInstaller — ABC интерфейс для всех installer-плагин�
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from tools.init_project.config import InstallContext
+if TYPE_CHECKING:
+    from tools.init_project.config import InstallContext
 
 
 class BaseInstaller(ABC):
@@ -19,15 +21,13 @@ class BaseInstaller(ABC):
 
     name: str = "BaseInstaller"
 
-    def pre_install(self, ctx: InstallContext) -> None:
+    def pre_install(self, ctx: InstallContext) -> None:  # noqa: B027
         """Фаза 1: проверки и подготовка. Override при необходимости."""
-        pass
 
     @abstractmethod
     def install(self, ctx: InstallContext) -> None:
         """Фаза 2: основная установка. Обязательна к реализации."""
         ...
 
-    def post_install(self, ctx: InstallContext) -> None:
+    def post_install(self, ctx: InstallContext) -> None:  # noqa: B027
         """Фаза 3: валидация и чистка. Override при необходимости."""
-        pass

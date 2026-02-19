@@ -14,11 +14,13 @@ from src.backend_fastapi.features.users.services.auth_service import AuthService
 
 # --- Mocks ---
 
+
 @pytest.fixture
 def mock_user_repo() -> AsyncMock:
     repo = AsyncMock(spec=IUserRepository)
     repo.commit = AsyncMock()
     return repo
+
 
 @pytest.fixture
 def mock_token_repo() -> AsyncMock:
@@ -26,11 +28,14 @@ def mock_token_repo() -> AsyncMock:
     repo.commit = AsyncMock()
     return repo
 
+
 @pytest.fixture
 def auth_service(mock_user_repo: AsyncMock, mock_token_repo: AsyncMock) -> AuthService:
     return AuthService(mock_user_repo, mock_token_repo)
 
+
 # --- Tests ---
+
 
 @pytest.mark.asyncio
 async def test_register_success(auth_service: AuthService, mock_user_repo: AsyncMock) -> None:
@@ -45,7 +50,7 @@ async def test_register_success(auth_service: AuthService, mock_user_repo: Async
         hashed_password="hashed_pw",
         is_active=True,
         is_superuser=False,
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
     mock_user_repo.create.return_value = created_user
 
@@ -56,6 +61,7 @@ async def test_register_success(auth_service: AuthService, mock_user_repo: Async
     assert result.email == "test@example.com"
     mock_user_repo.create.assert_called_once()
     mock_user_repo.commit.assert_called_once()
+
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(auth_service: AuthService, mock_user_repo: AsyncMock) -> None:
@@ -78,10 +84,12 @@ async def test_register_duplicate_email(auth_service: AuthService, mock_user_rep
     # Verify create WAS called (attempted)
     mock_user_repo.create.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_authenticate_success(auth_service: AuthService, mock_user_repo: AsyncMock) -> None:
     # Arrange
     from src.backend_fastapi.core.security import get_password_hash
+
     hashed = get_password_hash("password123")
 
     # FIX: Use real object
@@ -91,7 +99,7 @@ async def test_authenticate_success(auth_service: AuthService, mock_user_repo: A
         hashed_password=hashed,
         is_active=True,
         is_superuser=False,
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
     )
     mock_user_repo.get_by_email.return_value = user
 
@@ -102,10 +110,12 @@ async def test_authenticate_success(auth_service: AuthService, mock_user_repo: A
     assert result is not None
     assert result.email == "test@example.com"
 
+
 @pytest.mark.asyncio
 async def test_authenticate_wrong_password(auth_service: AuthService, mock_user_repo: AsyncMock) -> None:
     # Arrange
     from src.backend_fastapi.core.security import get_password_hash
+
     hashed = get_password_hash("password123")
     user = User(id=uuid4(), email="test@example.com", hashed_password=hashed, is_active=True)
     mock_user_repo.get_by_email.return_value = user
@@ -116,11 +126,10 @@ async def test_authenticate_wrong_password(auth_service: AuthService, mock_user_
     # Assert
     assert result is None
 
+
 @pytest.mark.asyncio
 async def test_refresh_token_success(
-    auth_service: AuthService,
-    mock_token_repo: AsyncMock,
-    mock_user_repo: AsyncMock
+    auth_service: AuthService, mock_token_repo: AsyncMock, mock_user_repo: AsyncMock
 ) -> None:
     # Arrange
     valid_token = MagicMock()
@@ -136,7 +145,7 @@ async def test_refresh_token_success(
         is_active=True,
         is_superuser=False,
         created_at=datetime.now(UTC),
-        hashed_password="hash"
+        hashed_password="hash",
     )
     mock_user_repo.get_by_id.return_value = user
 
@@ -149,11 +158,12 @@ async def test_refresh_token_success(
     mock_token_repo.delete.assert_called_with("some_refresh_token")
     mock_token_repo.create.assert_called_once()
 
+
 @pytest.mark.asyncio
 async def test_refresh_token_expired(auth_service: AuthService, mock_token_repo: AsyncMock) -> None:
     # Arrange
     expired_token = MagicMock()
-    expired_token.expires_at = datetime.now(UTC) - timedelta(days=1) # Expired
+    expired_token.expires_at = datetime.now(UTC) - timedelta(days=1)  # Expired
 
     mock_token_repo.get_by_token.return_value = expired_token
 

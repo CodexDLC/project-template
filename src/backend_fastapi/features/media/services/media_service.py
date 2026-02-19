@@ -5,9 +5,9 @@ import uuid
 from pathlib import Path
 from uuid import UUID
 
-import aiofiles
+import aiofiles  # type: ignore
 import magic
-from aiofiles import os as aios
+from aiofiles import os as aios  # type: ignore
 from fastapi import UploadFile
 from loguru import logger
 from PIL import Image as PILImage
@@ -62,10 +62,7 @@ class MediaService:
         try:
             # Stream to temp + Hash calculation
             file_hash, size_bytes = await self._process_stream_to_temp(file, temp_path)
-            logger.debug(
-                f"MediaService | action=file_processed "
-                f"hash={file_hash} size={size_bytes}"
-            )
+            logger.debug(f"MediaService | action=file_processed hash={file_hash} size={size_bytes}")
 
             # Magic Bytes validation
             mime_type = await self._validate_file_type(temp_path)
@@ -99,10 +96,7 @@ class MediaService:
                 try:
                     await self._generate_thumbnail(target_path, file_hash)
                 except Exception as e:
-                    logger.error(
-                        f"MediaService | action=thumbnail_failed "
-                        f"hash={file_hash} error={e}", exc_info=True
-                    )
+                    logger.error(f"MediaService | action=thumbnail_failed hash={file_hash} error={e}", exc_info=True)
 
                 # DB Registration
                 await self.repository.create_file(
@@ -280,10 +274,7 @@ class MediaService:
         detected_mime = await run_in_threadpool(_get_mime)
 
         if detected_mime not in self.ALLOWED_MIME_TYPES:
-            logger.warning(
-                f"MediaService | action=upload_rejected "
-                f"reason=invalid_mime mime={detected_mime}"
-            )
+            logger.warning(f"MediaService | action=upload_rejected reason=invalid_mime mime={detected_mime}")
             raise ValidationException(
                 detail=f"Invalid file type: {detected_mime}. Allowed: {', '.join(self.ALLOWED_MIME_TYPES.keys())}"
             )
@@ -319,7 +310,7 @@ class MediaService:
         def _process() -> None:
             with PILImage.open(original_path) as img:
                 if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB") # type: ignore
+                    img = img.convert("RGB")  # type: ignore
 
                 img.thumbnail((300, 300))
                 img.save(thumb_path, "JPEG", quality=85)

@@ -5,6 +5,7 @@ from .config import settings
 # Экспортируем функцию настройки, но уже с привязанными параметрами (частично)
 # или просто вызываем её в main.py
 
+
 def setup_loguru() -> None:
     """
     Configures Loguru logger using shared implementation.

@@ -65,7 +65,7 @@ sequenceDiagram
 
     C->>S: POST /auth/refresh (old_refresh_token)
     S->>DB: Find token in whitelist
-    
+
     alt Token Not Found / Expired
         DB-->>S: None
         S-->>C: 401 Unauthorized (Redirect to Login)

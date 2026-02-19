@@ -39,6 +39,9 @@ ALLOWED_HOSTS = [
 # ═══════════════════════════════════════════
 
 INSTALLED_APPS = [
+    # ── Translation (must be before admin) ──
+    "modeltranslation",
+    # ── Django ──
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,6 +51,8 @@ INSTALLED_APPS = [
     # ── Features ──
     "features.main",
     "features.system",
+    # ── API ──
+    "ninja",
 ]
 
 MIDDLEWARE = [
@@ -111,6 +116,10 @@ LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en-us")
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
+
+# Model Translation (django-modeltranslation)
+MODELTRANSLATION_DEFAULT_LANGUAGE = LANGUAGE_CODE.split("-")[0]
+MODELTRANSLATION_LANGUAGES = ("en", "ru")
 
 # ═══════════════════════════════════════════
 # Static files

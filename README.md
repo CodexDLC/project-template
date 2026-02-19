@@ -25,7 +25,7 @@ git clone https://github.com/codexdlc/project-template.git .
 ```bash
 pip install poetry
 poetry config virtualenvs.in-project true
-poetry install --extras "fastapi bot dev"   # or: --extras "django bot dev"
+poetry install --all-extras   # installs everything; installer will clean up unused
 ```
 
 ### 3. Run the installer
@@ -57,19 +57,18 @@ The interactive CLI will ask:
 ```
 project-template/
 ├── src/
-│   ├── backend-fastapi/      # FastAPI backend (async, Clean Architecture)
-│   ├── backend-django/       # Django backend (features-based structure)
+│   ├── backend_fastapi/      # FastAPI backend (async, features-based)
+│   ├── backend_django/       # Django backend (features-based structure)
 │   ├── telegram_bot/         # Telegram Bot (aiogram 3.x)
+│   ├── workers/              # Background workers (arq)
 │   └── shared/               # Shared code: config, logging, constants
 ├── tools/
 │   ├── init_project/         # Modular installer (kept after install)
 │   │   ├── actions/          # Poetry, Docker, Scaffolder, Cleaner, Renamer, Finalizer
 │   │   └── installers/       # Per-framework installers + resources/
 │   ├── dev/                  # Developer utilities
+│   ├── media/                # Media utilities (convert, QR)
 │   └── migration_agent.py    # Migrate existing projects to this template
-├── scripts/
-│   ├── init_db_schemas.sql   # PostgreSQL schema isolation setup
-│   └── generate_project_tree.py
 ├── deploy/                   # Generated: docker-compose, nginx (from .tpl)
 ├── .github/workflows/        # Generated: CI/CD pipelines (from .tpl)
 ├── docs/                     # Documentation (en_EN / ru_RU)
@@ -83,21 +82,21 @@ project-template/
 
 ### FastAPI (async REST API)
 
-- **Architecture**: Clean Architecture with layers (routers → services → repositories)
+- **Architecture**: Features-based with Clean Architecture layers per feature
 - **Database**: SQLAlchemy 2.0 (async) + Alembic migrations
 - **Config**: Pydantic Settings v2, `.env` file
 - **Key features**: JWT auth, async PostgreSQL (asyncpg), Pydantic v2 schemas
 
 ```
-src/backend-fastapi/
-├── api/                  # Routers (endpoints)
-├── core/                 # Config, database, security
+src/backend_fastapi/
+├── core/                 # Config, database, security, logger
 ├── database/
 │   ├── models/           # SQLAlchemy models
 │   └── migrations/       # Alembic (env.py, versions/)
-├── repositories/         # Data access layer
-├── schemas/              # Pydantic request/response models
-└── services/             # Business logic
+├── features/
+│   ├── users/            # Auth: JWT, registration, login
+│   └── media/            # Media upload/management
+└── main.py               # App entrypoint, router registration
 ```
 
 ### Django (full-stack)
@@ -107,7 +106,7 @@ src/backend-fastapi/
 - **Key features**: Django Admin, ORM, split settings, feature isolation
 
 ```
-src/backend-django/
+src/backend_django/
 ├── core/                 # Project core (urls, wsgi, asgi)
 │   └── settings/         # base.py, dev.py, prod.py
 ├── features/
@@ -121,18 +120,30 @@ src/backend-django/
 ### Telegram Bot (aiogram 3.x)
 
 - **Framework**: aiogram 3 with Dispatcher + Router pattern
-- **Data modes**: `BOT_DATA_MODE=api` (REST calls to backend) or `direct` (own database)
-- **Database**: SQLAlchemy + Alembic (when `direct` mode)
+- **Architecture**: Features split by transport — `telegram/` (handlers) and `redis/` (async notifications)
 - **Config**: Pydantic Settings, shared `.env` with FastAPI
 
 ```
 src/telegram_bot/
-├── core/                 # Config, bot instance
-├── handlers/             # Message/callback handlers
-├── keyboards/            # Inline/reply keyboards
-├── middlewares/          # Aiogram middlewares
-├── services/             # Business logic / API clients
-└── database/             # Models + Alembic migrations (direct mode)
+├── core/                 # Config, container, factory, routers
+├── features/
+│   ├── telegram/         # Telegram-driven features (commands, bot_menu)
+│   └── redis/            # Redis Stream-driven features (notifications, errors)
+├── infrastructure/       # External integrations
+├── middlewares/          # Aiogram middlewares (security, throttling, i18n)
+├── resources/            # States, constants, templates
+└── services/             # Director, FSM, sender, redis dispatcher
+```
+
+### Workers (arq)
+
+- **Framework**: arq (async job queue over Redis)
+- **Purpose**: Background tasks — notifications, emails, scheduled jobs
+
+```
+src/workers/
+├── core/                 # Base worker, config, email client, template renderer
+└── notification_worker/  # Notification tasks and worker entrypoint
 ```
 
 ---
@@ -145,19 +156,10 @@ All backends can share **one PostgreSQL database** (e.g. Neon) using separate sc
 | :------- | :------------ | :-------------- |
 | FastAPI  | `fastapi_app` | `DB_SCHEMA`     |
 | Django   | `django_app`  | `DB_SCHEMA`     |
-| Bot      | `bot_app`     | `DB_SCHEMA`     |
-
-### Setup
-
-```bash
-# Create schemas (run once on new database)
-psql $DATABASE_URL -f scripts/init_db_schemas.sql
-```
 
 Each backend uses `search_path` to isolate tables:
 - **FastAPI**: `connect_args.server_settings.search_path`
 - **Django**: `DATABASES.default.OPTIONS.options` (prod.py)
-- **Bot**: same as FastAPI pattern
 
 ---
 
@@ -192,23 +194,14 @@ python manage.py migrate
 docker compose run --rm -T backend python manage.py migrate --noinput
 ```
 
-### Bot (Alembic, direct mode only)
-
-```bash
-cd src/telegram_bot
-
-alembic revision --autogenerate -m "add_bot_users"
-alembic upgrade head
-```
-
 ---
 
 ## Configuration
 
 ### Environment Variables
 
-- **FastAPI + Bot** — shared root `.env` (loaded via `pydantic-settings`)
-- **Django** — own `src/backend-django/.env` (loaded via `python-dotenv`)
+- **FastAPI + Bot + Workers** — shared root `.env` (loaded via `pydantic-settings`)
+- **Django** — own `src/backend_django/.env` (loaded via `python-dotenv`)
 
 Key variables:
 
@@ -217,7 +210,7 @@ Key variables:
 | `DATABASE_URL`  | PostgreSQL connection    | (required)     |
 | `DB_SCHEMA`     | Schema name              | per-backend    |
 | `BOT_TOKEN`     | Telegram bot token       | (required)     |
-| `BOT_DATA_MODE` | `api` or `direct`        | `api`          |
+| `REDIS_URL`     | Redis for arq workers    | (required)     |
 | `SECRET_KEY`    | Django/JWT secret        | (required)     |
 | `DEBUG`         | Debug mode               | `True`         |
 
@@ -245,10 +238,24 @@ The installer is **kept after installation** — not deleted. You can re-use it 
 Restore a previously removed module (e.g. add bot to a FastAPI-only project):
 
 ```bash
-python -m tools.init_project.add_module telegram_bot
+python -m tools.init_project.add_module bot       # alias for telegram_bot
+python -m tools.init_project.add_module fastapi
+python -m tools.init_project.add_module django
 ```
 
-Uses `git checkout` from the Install commit to restore files.
+Uses `git checkout` from the Install commit to restore src, deploy, and docs.
+
+### Remove Module (`tools/init_project/remove_module.py`)
+
+Remove a module you no longer need:
+
+```bash
+python -m tools.init_project.remove_module bot
+python -m tools.init_project.remove_module fastapi --no-commit
+python -m tools.init_project.remove_module django
+```
+
+Deletes all module directories (src, deploy, docs) and creates a git commit. Use `--no-commit` to skip the auto-commit.
 
 ### Migration Agent (`tools/migration_agent.py`)
 
@@ -291,8 +298,10 @@ Tool configs are in `pyproject.toml` (Ruff, Mypy, Pytest).
 | Python     | 3.13+                                          |
 | FastAPI    | FastAPI, SQLAlchemy 2.0, asyncpg, Alembic      |
 | Django     | Django 5.1, psycopg2, gunicorn                 |
-| Bot        | aiogram 3.x, arq                               |
+| Bot        | aiogram 3.x                                    |
+| Workers    | arq (async job queue over Redis)               |
 | Database   | PostgreSQL (Neon-compatible), schema isolation  |
+| Cache/Queue| Redis                                          |
 | Config     | Pydantic Settings v2, python-dotenv (Django)    |
 | Build      | Poetry (PEP 621)                               |
 | Linting    | Ruff, Mypy, pre-commit                         |

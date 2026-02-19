@@ -4,10 +4,7 @@ FSM States для Telegram Bot.
 """
 
 
-
 # --- Configuration Lists ---
 
 # Список состояний, где текстовые сообщения от юзера считаются мусором (удаляются)
-GARBAGE_TEXT_STATES: list[str] = [
-
-]
+GARBAGE_TEXT_STATES: list[str] = []

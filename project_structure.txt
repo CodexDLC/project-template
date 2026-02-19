@@ -9,25 +9,15 @@ Project Structure: Full Project
     📄 LICENSE
     📄 README-RU.md
     📄 README.md
+    📄 nul
     📄 poetry.lock
     📄 project_structure.txt
     📄 pyproject.toml
     📂 .claude/
         📄 settings.local.json
     📂 deploy/
-        📄 .env.example
         📄 README.md
         📂 Django/
-        📂 Fast_api/
-            📄 Dockerfile
-            📄 docker-compose.prod.yml
-            📄 docker-compose.yml
-        📂 nginx/
-            📄 .dockerignore
-            📄 Dockerfile
-            📄 nginx-main.conf
-            📄 site-local.conf
-            📄 site.conf
     📂 docs/
         📄 README.md
         📂 en_EN/
@@ -36,6 +26,18 @@ Project Structure: Full Project
             📂 architecture/
                 📄 README.md
                 📄 tech_stack.md
+                📂 backend-django/
+                    📄 README.md
+                    📂 core/
+                        📄 README.md
+                        📄 settings.md
+                    📂 database/
+                        📄 README.md
+                        📄 schema_isolation.md
+                    📂 features/
+                        📄 README.md
+                        📄 main.md
+                        📄 system.md
                 📂 backend-fastapi/
                     📄 README.md
                     📄 roadmap.md
@@ -163,31 +165,100 @@ Project Structure: Full Project
                     📄 README.md
                 📂 project_structure/
                     📄 README.md
+                📂 tools/
+                    📄 README.md
+                    📄 add_remove_module.md
+                    📄 init_project.md
+                    📄 media.md
+                    📄 migration_agent.md
         📂 ru_RU/
             📄 README.md
+            📂 architecture/
+                📂 backend-django/
+                    📄 README.md
+                    📂 core/
+                        📄 README.md
+                    📂 database/
+                        📄 README.md
+                    📂 features/
+                        📄 README.md
+                📂 backend-fastapi/
+                    📄 README.md
+                📂 telegram_bot/
+                    📄 README.md
             📂 features/
                 📄 01_account_architecture.md
+            📂 infrastructure/
+                📂 tools/
+                    📄 README.md
     📂 scripts/
         📄 README.md
         📄 generate_project_tree.py
+        📄 init_db_schemas.sql
         📄 lint_docs.py
     📂 src/
         📄 README.md
         📄 __init__.py
-        📂 backend-django/
+        📄 conftest.py
+        📂 backend_django/
+            📄 .env
+            📄 .env.example
             📄 README.md
-        📂 backend-fastapi/
+            📄 __init__.py
+            📄 manage.py
+            📂 core/
+                📄 __init__.py
+                📄 asgi.py
+                📄 urls.py
+                📄 wsgi.py
+                📂 settings/
+                    📄 __init__.py
+                    📄 base.py
+                    📄 dev.py
+                    📄 prod.py
+            📂 features/
+                📄 __init__.py
+                📂 main/
+                    📄 __init__.py
+                    📄 admin.py
+                    📄 apps.py
+                    📄 models.py
+                    📄 tests.py
+                    📄 urls.py
+                    📂 migrations/
+                        📄 __init__.py
+                    📂 selectors/
+                        📄 __init__.py
+                    📂 views/
+                        📄 __init__.py
+                        📄 home.py
+                📂 system/
+                    📄 __init__.py
+                    📄 admin.py
+                    📄 apps.py
+                    📄 tests.py
+                    📂 migrations/
+                        📄 __init__.py
+                    📂 models/
+                        📄 __init__.py
+                        📄 mixins.py
+            📂 locale/
+            📂 static/
+                📂 css/
+                    📄 base.css
+                📂 img/
+                📂 js/
+            📂 templates/
+                📄 base.html
+                📂 home/
+                    📄 home.html
+        📂 backend_fastapi/
             📄 README.md
             📄 __init__.py
             📄 alembic.ini
             📄 main.py
             📄 requirements.txt
             📄 router.py
-            📂 alembic/
-                📄 README
-                📄 env.py
-                📄 script.py.mako
-                📂 versions/
             📂 core/
                 📄 __init__.py
                 📄 config.py
@@ -201,6 +272,11 @@ Project Structure: Full Project
                     📄 error.py
             📂 database/
                 📄 __init__.py
+                📂 migrations/
+                    📄 README
+                    📄 env.py
+                    📄 script.py.mako
+                    📂 versions/
                 📂 models/
                     📄 __init__.py
                     📄 base.py
@@ -282,6 +358,7 @@ Project Structure: Full Project
                 📄 user.py
         📂 telegram_bot/
             📄 __init__.py
+            📄 alembic.ini
             📄 app_telegram.py
             📄 manage.py
             📂 core/
@@ -295,8 +372,15 @@ Project Structure: Full Project
                 📄 settings.py
             📂 database/
                 📄 __init__.py
+                📂 migrations/
+                    📄 README
+                    📄 env.py
+                    📄 script.py.mako
+                    📂 versions/
+                        📄 __init__.py
                 📂 models/
                     📄 __init__.py
+                    📄 base.py
                 📂 repositories/
                     📄 __init__.py
             📂 features/
@@ -416,14 +500,17 @@ Project Structure: Full Project
     📂 tools/
         📄 README.md
         📄 __init__.py
+        📄 migration_agent.py
         📂 dev/
             📄 __init__.py
             📄 check_local.ps1
         📂 init_project/
             📄 __init__.py
             📄 __main__.py
+            📄 add_module.py
             📄 cli.py
             📄 config.py
+            📄 remove_module.py
             📄 runner.py
             📂 actions/
                 📄 __init__.py
@@ -436,11 +523,15 @@ Project Structure: Full Project
                     📂 resources/
                         📄 README.md
                         📄 dockerignore.tpl
+                        📄 env.example.tpl
+                        📄 env.tpl
                         📂 bot/
                             📄 Dockerfile.tpl
                         📂 compose/
                             📄 docker-compose.dev.tpl
                             📄 docker-compose.prod.tpl
+                        📂 django/
+                            📄 Dockerfile.tpl
                         📂 fastapi/
                             📄 Dockerfile.tpl
                         📂 github/
@@ -476,3 +567,38 @@ Project Structure: Full Project
                 📄 django_installer.py
                 📄 fastapi_installer.py
                 📄 shared_installer.py
+                📂 django/
+                    📄 __init__.py
+                    📂 resources/
+                        📄 README.md.tpl
+                        📄 base.html.tpl
+                        📄 env.example.tpl
+                        📄 env.tpl
+                        📄 home.html.tpl
+                        📄 manage.py.tpl
+                        📂 api/
+                            📄 __init__.py.tpl
+                            📄 urls.py.tpl
+                        📂 core/
+                            📄 __init__.py.tpl
+                            📄 asgi.py.tpl
+                            📄 urls.py.tpl
+                            📄 wsgi.py.tpl
+                            📂 settings/
+                                📄 __init__.py.tpl
+                                📄 base.py.tpl
+                                📄 dev.py.tpl
+                                📄 prod.py.tpl
+                        📂 feature_tpl/
+                            📄 __init__.py.tpl
+                            📄 admin.py.tpl
+                            📄 apps.py.tpl
+                            📄 home_view.py.tpl
+                            📄 mixins.py.tpl
+                            📄 tests.py.tpl
+                            📄 translation.py.tpl
+                            📄 urls.py.tpl
+        📂 media/
+            📄 __init__.py
+            📄 convert_to_webp.py
+            📄 qr_generator.py

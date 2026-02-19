@@ -37,6 +37,7 @@ venv/
 .DS_Store
 Thumbs.db
 desktop.ini
+nul
 
 # ═══════════════════════════════════════════
 # Testing & Quality
@@ -75,6 +76,13 @@ data/uploads/
 # Docker & Deploy (local overrides)
 # ═══════════════════════════════════════════
 deploy/.env
+deploy/backend/
+deploy/bot/
+deploy/worker/
+deploy/nginx/
+deploy/docker-compose.yml
+deploy/docker-compose.prod.yml
+deploy/docker-compose.test.yml
 
 # ═══════════════════════════════════════════
 # Template installer artifacts

@@ -1,4 +1,20 @@
 # ============================================
+# Default server to drop invalid Host headers
+# ============================================
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate /etc/letsencrypt/live/{{DOMAIN}}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{DOMAIN}}/privkey.pem;
+
+    return 444; # Connection closed without response
+}
+
+# ============================================
 # HTTP (Port 80) — Certbot + HTTPS redirect
 # ============================================
 server {
@@ -48,6 +64,21 @@ server {
         log_not_found off;
     }
 
+    # === Static Files ===
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # === Media ===
+    location /media/ {
+        alias /app/media/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Access-Control-Allow-Origin "*";
+    }
+
     # === API → Backend ===
     location /api/ {
         limit_req zone=api_limit burst=5 nodelay;
@@ -74,22 +105,24 @@ server {
         proxy_pass http://backend;
     }
 
-    # === Media ===
-    location /media/ {
-        alias /app/media/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        add_header Access-Control-Allow-Origin "*";
-    }
-
     # === Health ===
     location /health {
-        proxy_pass http://backend;
+        proxy_pass http://backend/api/v1/health;
         access_log off;
     }
 
     # === Block attacks ===
     location ~* (phpunit|eval-stdin|cgi-bin|\.php$|wp-admin|wp-login|\.env) {
         return 444;
+    }
+
+    # === All other requests → Backend ===
+    location / {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

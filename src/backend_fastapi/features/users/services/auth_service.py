@@ -13,7 +13,7 @@ from src.backend_fastapi.core.security import (
 )
 from src.backend_fastapi.features.users.contracts.token_repository import ITokenRepository
 from src.backend_fastapi.features.users.contracts.user_repository import IUserRepository
-from src.backend_fastapi.features.users.schemas.token import Token
+from src.backend_fastapi.features.users.schemas.auth_token import Token
 from src.backend_fastapi.features.users.schemas.user import UserCreate, UserResponse
 
 
@@ -41,8 +41,7 @@ class AuthService:
             await self.user_repository.commit()
         except IntegrityError:
             logger.warning(
-                f"AuthService | action=register_failed "
-                f"reason=email_exists_race_condition email={user_in.email}"
+                f"AuthService | action=register_failed reason=email_exists_race_condition email={user_in.email}"
             )
             raise BusinessLogicException(detail="User with this email already exists") from None
 

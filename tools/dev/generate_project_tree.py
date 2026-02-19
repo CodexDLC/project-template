@@ -3,10 +3,9 @@ import os
 
 def get_top_level_dirs(root_path, ignore_dirs):
     """Возвращает список директорий верхнего уровня, исключая игнорируемые."""
-    return sorted([
-        d for d in os.listdir(root_path)
-        if os.path.isdir(os.path.join(root_path, d)) and d not in ignore_dirs
-    ])
+    return sorted(
+        [d for d in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, d)) and d not in ignore_dirs]
+    )
 
 
 def generate_tree(root_path, target_dir, ignore_dirs, ignore_extensions, output_file):
@@ -45,14 +44,38 @@ def main():
     # Настройки
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    output_filename = os.path.join(project_root, "project_structure.txt")
+    output_filename = os.path.join(project_root, "../../project_structure.txt")
 
     ignore_dirs = {
-        ".git", ".github", "venv", ".venv", "__pycache__", ".idea", ".vscode",
-        "data", "logs", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-        ".gemini", "node_modules", "site-packages"
+        ".git",
+        ".github",
+        "venv",
+        ".venv",
+        "__pycache__",
+        ".idea",
+        ".vscode",
+        "data",
+        "logs",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".gemini",
+        "node_modules",
+        "site-packages",
     }
-    ignore_files_extensions = {".pyc", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".db", ".sqlite3", ".ico", ".woff", ".woff2"}
+    ignore_files_extensions = {
+        ".pyc",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".svg",
+        ".db",
+        ".sqlite3",
+        ".ico",
+        ".woff",
+        ".woff2",
+    }
 
     # 1. Сканируем верхний уровень
     top_dirs = get_top_level_dirs(project_root, ignore_dirs)

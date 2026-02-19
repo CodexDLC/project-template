@@ -4,7 +4,7 @@ from loguru import logger
 
 from src.backend_fastapi.core.exceptions import AuthException
 from src.backend_fastapi.dependencies.auth import get_auth_service
-from src.backend_fastapi.features.users.schemas.token import RefreshTokenRequest, Token
+from src.backend_fastapi.features.users.schemas.auth_token import RefreshTokenRequest, Token
 from src.backend_fastapi.features.users.schemas.user import UserCreate, UserResponse
 from src.backend_fastapi.features.users.services.auth_service import AuthService
 
@@ -12,9 +12,7 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_new_user(
-    user_in: UserCreate, auth_service: AuthService = Depends(get_auth_service)
-) -> UserResponse:
+async def register_new_user(user_in: UserCreate, auth_service: AuthService = Depends(get_auth_service)) -> UserResponse:
     """
     Register a new user.
 
@@ -40,10 +38,7 @@ async def login_for_access_token(
 
     user = await auth_service.authenticate_user(form_data.username, form_data.password)
     if not user:
-        logger.warning(
-            f"AuthRouter | action=login_failed "
-            f"reason=invalid_credentials email={form_data.username}"
-        )
+        logger.warning(f"AuthRouter | action=login_failed reason=invalid_credentials email={form_data.username}")
         raise AuthException(detail="Incorrect email or password")
 
     tokens = await auth_service.create_tokens(user)
@@ -53,9 +48,7 @@ async def login_for_access_token(
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(
-    token_in: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)
-) -> Token:
+async def refresh_token(token_in: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)) -> Token:
     """
     Refresh access token using refresh token.
 
@@ -67,9 +60,7 @@ async def refresh_token(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(
-    token_in: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)
-) -> Response:
+async def logout(token_in: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)) -> Response:
     """
     Logout user (invalidate refresh token).
     """

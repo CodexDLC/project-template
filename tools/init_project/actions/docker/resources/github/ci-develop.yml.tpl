@@ -1,12 +1,14 @@
-name: CI Develop (Linting)
+name: CI Develop (Fast Quality Check)
 
 on:
   push:
     branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
 
 jobs:
   lint:
-    name: Fast Quality Check
+    name: Linting & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,12 +18,29 @@ jobs:
         with:
           python-version: "{{PYTHON_VERSION}}"
 
-      - name: Install dependencies
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+
+      - name: Configure Poetry
         run: |
-          pip install ".[dev{{INSTALL_EXTRAS}}]"
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project true
+
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
 
       - name: Run Ruff
-        run: ruff check {{LINT_PATHS}}
+        run: poetry run ruff check src/
 
       - name: Run Mypy
-        run: mypy {{LINT_PATHS}}
+        run: poetry run mypy src/

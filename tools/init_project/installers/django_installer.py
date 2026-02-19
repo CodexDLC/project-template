@@ -20,16 +20,18 @@ Flow:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from tools.init_project.config import InstallContext
 from tools.init_project.installers.base import BaseInstaller
+
+if TYPE_CHECKING:
+    from tools.init_project.config import InstallContext
 
 # Путь к ресурсам Django
 RESOURCES_DIR = Path(__file__).parent / "django" / "resources"
 
 
 class DjangoInstaller(BaseInstaller):
-
     name = "Django"
 
     def pre_install(self, ctx: InstallContext) -> None:
@@ -42,16 +44,19 @@ class DjangoInstaller(BaseInstaller):
         # ── 1. Core (settings, urls, wsgi, asgi) ──
         self._create_core(backend_dir, ctx.project_name)
 
-        # ── 2. Features: main + system ──
+        # ── 2. API (Django Ninja) ──
+        self._create_api(backend_dir, ctx.project_name)
+
+        # ── 3. Features: main + system ──
         self._create_feature_main(backend_dir, ctx.project_name)
         self._create_feature_system(backend_dir, ctx.project_name)
 
-        # ── 3. Static / Templates / Locale ──
+        # ── 4. Static / Templates / Locale ──
         self._create_static_dirs(backend_dir)
         self._create_templates(backend_dir, ctx.project_name)
         self._create_locale(backend_dir)
 
-        # ── 4. Root files (manage.py, .env, README) ──
+        # ── 5. Root files (manage.py, .env, README) ──
         self._create_root_files(backend_dir, ctx.project_name)
 
         print("    ✅ Django structure created")
@@ -90,6 +95,21 @@ class DjangoInstaller(BaseInstaller):
         print("    ✅ core/ (settings split: base/dev/prod)")
 
     # ─────────────────────────────────────────
+    # API (Django Ninja)
+    # ─────────────────────────────────────────
+
+    def _create_api(self, backend_dir: Path, project_name: str) -> None:
+        """Создаёт api/ с Django Ninja роутерами."""
+        api_dir = backend_dir / "api"
+        api_dir.mkdir(parents=True, exist_ok=True)
+
+        tpl_api = RESOURCES_DIR / "api"
+        self._render(tpl_api / "__init__.py.tpl", api_dir / "__init__.py", project_name)
+        self._render(tpl_api / "urls.py.tpl", api_dir / "urls.py", project_name)
+
+        print("    ✅ api/ (Django Ninja, versioned routes)")
+
+    # ─────────────────────────────────────────
     # Features
     # ─────────────────────────────────────────
 
@@ -110,17 +130,20 @@ class DjangoInstaller(BaseInstaller):
 
         # apps.py
         self._render_feature_apps(
-            tpl / "apps.py.tpl", feat_dir / "apps.py",
-            app_name="main", app_class="Main", app_verbose="Main",
+            tpl / "apps.py.tpl",
+            feat_dir / "apps.py",
+            app_name="main",
+            app_class="Main",
+            app_verbose="Main",
         )
 
-        # admin.py, tests.py
+        # admin.py, tests.py, translation.py
         self._render(tpl / "admin.py.tpl", feat_dir / "admin.py", project_name)
         self._render(tpl / "tests.py.tpl", feat_dir / "tests.py", project_name)
+        self._render(tpl / "translation.py.tpl", feat_dir / "translation.py", project_name)
 
         # urls.py
-        self._render(tpl / "urls.py.tpl", feat_dir / "urls.py", project_name,
-                     extra={"{{APP_NAME}}": "main"})
+        self._render(tpl / "urls.py.tpl", feat_dir / "urls.py", project_name, extra={"{{APP_NAME}}": "main"})
 
         # models.py (пустой, можно потом сделать папку)
         (feat_dir / "models.py").write_text("# from django.db import models\n", encoding="utf-8")
@@ -153,13 +176,17 @@ class DjangoInstaller(BaseInstaller):
 
         # apps.py
         self._render_feature_apps(
-            tpl / "apps.py.tpl", feat_dir / "apps.py",
-            app_name="system", app_class="System", app_verbose="System",
+            tpl / "apps.py.tpl",
+            feat_dir / "apps.py",
+            app_name="system",
+            app_class="System",
+            app_verbose="System",
         )
 
-        # admin.py, tests.py
+        # admin.py, tests.py, translation.py
         self._render(tpl / "admin.py.tpl", feat_dir / "admin.py", project_name)
         self._render(tpl / "tests.py.tpl", feat_dir / "tests.py", project_name)
+        self._render(tpl / "translation.py.tpl", feat_dir / "translation.py", project_name)
 
         # models/__init__.py + models/mixins.py
         (models_dir / "__init__.py").write_text(

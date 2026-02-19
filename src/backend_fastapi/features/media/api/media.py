@@ -26,10 +26,7 @@ async def upload_file(
     Returns:
         ImageRead: Uploaded image metadata.
     """
-    logger.info(
-        f"MediaRouter | action=upload_request "
-        f"user_id={current_user.id} filename={file.filename}"
-    )
+    logger.info(f"MediaRouter | action=upload_request user_id={current_user.id} filename={file.filename}")
     return await service.upload_image(user_id=current_user.id, file=file)
 
 
@@ -62,10 +59,7 @@ async def get_my_gallery(
     Returns:
         list[ImageRead]: List of user's images.
     """
-    logger.info(
-        f"MediaRouter | action=my_gallery_request "
-        f"user_id={current_user.id} limit={limit} offset={offset}"
-    )
+    logger.info(f"MediaRouter | action=my_gallery_request user_id={current_user.id} limit={limit} offset={offset}")
     return await service.get_user_gallery(user_id=current_user.id, limit=limit, offset=offset)
 
 

@@ -1,14 +1,13 @@
-from __future__ import annotations
-
+from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import CallbackQuery, TelegramObject
 from loguru import logger as log
 
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+from src.telegram_bot.core.container import BotContainer
 
+if TYPE_CHECKING:
     from aiogram.fsm.context import FSMContext
 
 
@@ -52,3 +51,8 @@ class SecurityMiddleware(BaseMiddleware):
 
         # Всё ок, пропускаем дальше
         return await handler(event, data)
+
+
+def setup(container: BotContainer) -> BaseMiddleware:
+    """Фабрика для создания middleware."""
+    return SecurityMiddleware()

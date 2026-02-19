@@ -22,21 +22,21 @@ classDiagram
         +render()
         +handle_action()
     }
-    
+
     class AccountDataProvider {
         <<interface>>
         +get_characters()
         +create_character()
     }
-    
+
     class AccountClient {
         +get_characters() (HTTP)
     }
-    
+
     class AccountRepository {
         +get_characters() (SQL)
     }
-    
+
     AccountOrchestrator --> AccountDataProvider : depends on
     AccountClient ..|> AccountDataProvider : implements
     AccountRepository ..|> AccountDataProvider : implements
@@ -67,12 +67,12 @@ class AccountDataProvider(Protocol):
     *   Получают `CallbackQuery`.
     *   Достают нужный контракт из DI.
     *   Запускают Оркестратор.
-    
+
 2.  **Orchestrator (`system/orchestrator.py`)**:
     *   Управляет логикой.
     *   Вызывает методы Контракта (`self.data_provider.get_characters()`).
     *   Принимает решение: обновить экран, сменить состояние (FSM) или показать уведомление.
-    
+
 3.  **UI (`system/ui.py`)**:
     *   Чистая верстка.
     *   Генерирует тексты и клавиатуры на основе DTO.
@@ -92,7 +92,7 @@ async def cmd_start(m: Message, state: FSMContext, bot: Bot, container: BotConta
 
     # 2. Reset: Полный сброс FSM (новая фича - чистое состояние)
     await state.clear()
-    
+
     # 3. User Action Cleanup: Удаляем сообщение пользователя (/start), чтобы не мусорить
     with contextlib.suppress(TelegramAPIError):
         await m.delete()

@@ -25,7 +25,7 @@ git clone https://github.com/codexdlc/project-template.git .
 ```bash
 pip install poetry
 poetry config virtualenvs.in-project true
-poetry install --extras "fastapi bot dev"   # или: --extras "django bot dev"
+poetry install --all-extras   # ставит всё; инсталлятор потом удалит лишнее
 ```
 
 ### 3. Запуск инсталлятора
@@ -57,19 +57,18 @@ python -m tools.init_project
 ```
 project-template/
 ├── src/
-│   ├── backend-fastapi/      # FastAPI бэкенд (async, Clean Architecture)
-│   ├── backend-django/       # Django бэкенд (features-based структура)
+│   ├── backend_fastapi/      # FastAPI бэкенд (async, features-based)
+│   ├── backend_django/       # Django бэкенд (features-based структура)
 │   ├── telegram_bot/         # Telegram Bot (aiogram 3.x)
+│   ├── workers/              # Фоновые воркеры (arq)
 │   └── shared/               # Общий код: конфиг, логирование, константы
 ├── tools/
 │   ├── init_project/         # Модульный инсталлятор (сохраняется после установки)
 │   │   ├── actions/          # Poetry, Docker, Scaffolder, Cleaner, Renamer, Finalizer
 │   │   └── installers/       # Инсталлятор для каждого фреймворка + resources/
 │   ├── dev/                  # Утилиты разработчика
+│   ├── media/                # Медиа-утилиты (конвертация, QR-коды)
 │   └── migration_agent.py    # Миграция существующих проектов в этот шаблон
-├── scripts/
-│   ├── init_db_schemas.sql   # Создание схем PostgreSQL
-│   └── generate_project_tree.py
 ├── deploy/                   # Генерируется: docker-compose, nginx (из .tpl)
 ├── .github/workflows/        # Генерируется: CI/CD пайплайны (из .tpl)
 ├── docs/                     # Документация (en_EN / ru_RU)
@@ -83,21 +82,21 @@ project-template/
 
 ### FastAPI (async REST API)
 
-- **Архитектура**: Clean Architecture с слоями (routers → services → repositories)
+- **Архитектура**: Features-based с Clean Architecture слоями внутри каждой фичи
 - **База данных**: SQLAlchemy 2.0 (async) + Alembic миграции
 - **Конфиг**: Pydantic Settings v2, `.env` файл
 - **Ключевые фичи**: JWT auth, async PostgreSQL (asyncpg), Pydantic v2 схемы
 
 ```
-src/backend-fastapi/
-├── api/                  # Роутеры (эндпоинты)
-├── core/                 # Конфиг, база данных, безопасность
+src/backend_fastapi/
+├── core/                 # Конфиг, база данных, безопасность, логгер
 ├── database/
 │   ├── models/           # SQLAlchemy модели
 │   └── migrations/       # Alembic (env.py, versions/)
-├── repositories/         # Слой доступа к данным
-├── schemas/              # Pydantic модели запросов/ответов
-└── services/             # Бизнес-логика
+├── features/
+│   ├── users/            # Auth: JWT, регистрация, логин
+│   └── media/            # Загрузка и управление медиафайлами
+└── main.py               # Точка входа, регистрация роутеров
 ```
 
 ### Django (full-stack)
@@ -107,7 +106,7 @@ src/backend-fastapi/
 - **Ключевые фичи**: Django Admin, ORM, split settings, изоляция features
 
 ```
-src/backend-django/
+src/backend_django/
 ├── core/                 # Ядро проекта (urls, wsgi, asgi)
 │   └── settings/         # base.py, dev.py, prod.py
 ├── features/
@@ -121,18 +120,30 @@ src/backend-django/
 ### Telegram Bot (aiogram 3.x)
 
 - **Фреймворк**: aiogram 3 с паттерном Dispatcher + Router
-- **Режимы данных**: `BOT_DATA_MODE=api` (REST запросы к бэкенду) или `direct` (своя БД)
-- **База данных**: SQLAlchemy + Alembic (в режиме `direct`)
+- **Архитектура**: Фичи разделены по транспорту — `telegram/` (хэндлеры) и `redis/` (асинхронные уведомления)
 - **Конфиг**: Pydantic Settings, общий `.env` с FastAPI
 
 ```
 src/telegram_bot/
-├── core/                 # Конфиг, экземпляр бота
-├── handlers/             # Обработчики сообщений/колбэков
-├── keyboards/            # Inline/reply клавиатуры
-├── middlewares/          # Мидлвари aiogram
-├── services/             # Бизнес-логика / API клиенты
-└── database/             # Модели + Alembic миграции (режим direct)
+├── core/                 # Конфиг, container, factory, routers
+├── features/
+│   ├── telegram/         # Telegram-фичи (commands, bot_menu)
+│   └── redis/            # Redis Stream-фичи (notifications, errors)
+├── infrastructure/       # Внешние интеграции
+├── middlewares/          # Мидлвари (security, throttling, i18n)
+├── resources/            # States, константы, шаблоны
+└── services/             # Director, FSM, sender, redis dispatcher
+```
+
+### Workers (arq)
+
+- **Фреймворк**: arq (async job queue поверх Redis)
+- **Назначение**: Фоновые задачи — уведомления, email, отложенные задания
+
+```
+src/workers/
+├── core/                 # Базовый воркер, конфиг, email client, рендерер шаблонов
+└── notification_worker/  # Задачи уведомлений и точка входа воркера
 ```
 
 ---
@@ -145,19 +156,10 @@ src/telegram_bot/
 | :-------- | :------------ | :-------------- |
 | FastAPI   | `fastapi_app` | `DB_SCHEMA`     |
 | Django    | `django_app`  | `DB_SCHEMA`     |
-| Bot       | `bot_app`     | `DB_SCHEMA`     |
-
-### Настройка
-
-```bash
-# Создание схем (выполнить один раз на новой базе)
-psql $DATABASE_URL -f scripts/init_db_schemas.sql
-```
 
 Каждый бэкенд использует `search_path` для изоляции таблиц:
 - **FastAPI**: `connect_args.server_settings.search_path`
 - **Django**: `DATABASES.default.OPTIONS.options` (prod.py)
-- **Bot**: аналогично FastAPI
 
 ---
 
@@ -192,23 +194,14 @@ python manage.py migrate
 docker compose run --rm -T backend python manage.py migrate --noinput
 ```
 
-### Bot (Alembic, только режим direct)
-
-```bash
-cd src/telegram_bot
-
-alembic revision --autogenerate -m "add_bot_users"
-alembic upgrade head
-```
-
 ---
 
 ## Конфигурация
 
 ### Переменные окружения
 
-- **FastAPI + Bot** — общий корневой `.env` (загружается через `pydantic-settings`)
-- **Django** — свой `src/backend-django/.env` (загружается через `python-dotenv`)
+- **FastAPI + Bot + Workers** — общий корневой `.env` (загружается через `pydantic-settings`)
+- **Django** — свой `src/backend_django/.env` (загружается через `python-dotenv`)
 
 Основные переменные:
 
@@ -217,7 +210,7 @@ alembic upgrade head
 | `DATABASE_URL`  | PostgreSQL подключение   | (обязательно)  |
 | `DB_SCHEMA`     | Имя схемы                | по бэкенду     |
 | `BOT_TOKEN`     | Токен Telegram бота      | (обязательно)  |
-| `BOT_DATA_MODE` | `api` или `direct`       | `api`          |
+| `REDIS_URL`     | Redis для arq воркеров   | (обязательно)  |
 | `SECRET_KEY`    | Django/JWT секрет        | (обязательно)  |
 | `DEBUG`         | Режим отладки            | `True`         |
 
@@ -245,10 +238,24 @@ CD пайплайн запускает миграции **перед** `docker c
 Восстановить ранее удалённый модуль (например, добавить бота к проекту только с FastAPI):
 
 ```bash
-python -m tools.init_project.add_module telegram_bot
+python -m tools.init_project.add_module bot       # алиас для telegram_bot
+python -m tools.init_project.add_module fastapi
+python -m tools.init_project.add_module django
 ```
 
-Использует `git checkout` из Install-коммита для восстановления файлов.
+Использует `git checkout` из Install-коммита для восстановления src, deploy и docs.
+
+### Удаление модуля (`tools/init_project/remove_module.py`)
+
+Удалить модуль, который больше не нужен:
+
+```bash
+python -m tools.init_project.remove_module bot
+python -m tools.init_project.remove_module fastapi --no-commit
+python -m tools.init_project.remove_module django
+```
+
+Удаляет все директории модуля (src, deploy, docs) и создаёт git-коммит. Флаг `--no-commit` — пропустить автокоммит.
 
 ### Агент миграции (`tools/migration_agent.py`)
 
@@ -291,8 +298,10 @@ pre-commit run --all-files
 | Python      | 3.13+                                          |
 | FastAPI     | FastAPI, SQLAlchemy 2.0, asyncpg, Alembic      |
 | Django      | Django 5.1, psycopg2, gunicorn                 |
-| Bot         | aiogram 3.x, arq                               |
+| Bot         | aiogram 3.x                                    |
+| Workers     | arq (async job queue поверх Redis)             |
 | БД          | PostgreSQL (совместимо с Neon), изоляция схем   |
+| Cache/Queue | Redis                                          |
 | Конфиг      | Pydantic Settings v2, python-dotenv (Django)    |
 | Сборка      | Poetry (PEP 621)                               |
 | Линтинг     | Ruff, Mypy, pre-commit                         |

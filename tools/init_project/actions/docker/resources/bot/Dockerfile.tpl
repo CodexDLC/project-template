@@ -29,6 +29,7 @@ RUN chown -R appuser:appuser /app
 USER appuser
 
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app:$PYTHONPATH"
 
 # Start bot
 CMD ["python", "-m", "src.telegram_bot.app_telegram"]
