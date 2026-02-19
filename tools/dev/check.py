@@ -83,8 +83,9 @@ def check_linters():
         return False
 
     print("Running Ruff format...")
-    if not run_command("poetry run ruff format src/ --check")[0]:
-        print_error("Ruff format check failed")
+    # Изменено: убран флаг --check, чтобы ruff format применял изменения
+    if not run_command("poetry run ruff format src/")[0]:
+        print_error("Ruff format failed to apply changes")
         return False
 
     print("Running basic pre-commit hooks...")
