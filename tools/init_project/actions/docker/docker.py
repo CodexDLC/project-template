@@ -301,12 +301,23 @@ class DockerAction:
             "\n".join(f"      {line}" for line in step.splitlines()) for step in build_push_steps
         )
 
+        # Комментарий с миграциями в cd-release — зависит от бэкенда
+        if ctx.backend == "django":
+            migration_comment = dedent("""\
+  #           # Run migrations
+  #           docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py migrate --noinput
+  #           docker compose -f docker-compose.prod.yml run --rm -T backend python manage.py collectstatic --noinput""")
+        elif ctx.backend == "fastapi":
+            migration_comment = dedent("""\
+  #           # Run Alembic migrations
+  #           docker compose -f docker-compose.prod.yml run --rm -T backend alembic upgrade head""")
+        else:
+            migration_comment = ""
+
         release_vars = {
             **variables,
             "{{BUILD_PUSH_STEPS}}": build_push_block,
-            "{{DOCKER_IMAGE_ENVS}}": "\n".join(docker_image_envs),
-            "{{DOCKER_IMAGE_ENV_NAMES}}": ",".join(docker_image_env_names),
-            "{{UPDATE_VAR_CALLS}}": "\n".join(update_var_calls),
+            "{{MIGRATION_STEPS_COMMENT}}": migration_comment,
         }
         self._render_template(
             RESOURCES / "github" / "cd-release.yml.tpl",

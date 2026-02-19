@@ -8,7 +8,7 @@ Based on your module selection, the following workflows will be generated:
 |:---------|:--------|:--------|
 | `ci-develop.yml` | Push to develop | Lint (ruff, mypy) |
 | `ci-main.yml` | PR to main | Tests + Docker build |
-| `cd-release.yml` | Push to release | Build → GHCR → Deploy via SSH |
+| `cd-release.yml` | Push tag `v*` | Build → Push to GHCR (deploy — TODO) |
 | `check-release-source.yml` | PR to release | Verify source is main branch |
 
 Templates are stored in: `tools/init_project/actions/docker/resources/github/`
