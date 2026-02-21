@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ company_name }}{% endblock %}</title>
+    <title>{% block title %}{{ site_name }}{% endblock %}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
 
-    <!-- MAIN CONTAINER -->
+    <!-- ОСНОВНОЙ КОНТЕЙНЕР (Замена body) -->
     <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f4f4f4" style="table-layout: fixed;">
         <tr>
             <td align="center" style="padding: 20px 0;">
 
+                <!-- ШИРИНА ПИСЬМА 700px -->
                 <!--[if (gte mso 9)|(IE)]>
                 <table align="center" border="0" cellspacing="0" cellpadding="0" width="700">
                 <tr>
@@ -20,13 +21,12 @@
 
                 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 700px; background-color: #ffffff; border-radius: 8px; border-collapse: separate;">
 
-                    <!-- HEADER -->
-                    <!-- TODO: Replace primary color (#2c3e50) with your brand color -->
+                    <!-- ХЕДЕР -->
                     <tr>
-                        <td align="center" bgcolor="#2c3e50" style="padding: 40px 20px; border-radius: 8px 8px 0 0;">
-                            <a href="{{ site_url }}" target="_blank" style="text-decoration: none;">
+                        <td align="center" bgcolor="#003831" style="padding: 40px 20px; border-radius: 8px 8px 0 0;">
+                            <a href="{{ site_url }}/de/" target="_blank" style="text-decoration: none;">
                                 <img src="{{ logo_url }}"
-                                     alt="{{ company_name }}"
+                                     alt="{{ site_name }}"
                                      width="200"
                                      border="0"
                                      style="display: block; font-family: 'Georgia', serif; color: #ffffff; font-size: 28px;">
@@ -34,7 +34,7 @@
                         </td>
                     </tr>
 
-                    <!-- CONTENT BLOCK -->
+                    <!-- КОНТЕНТНЫЙ БЛОК -->
                     <tr>
                         <td style="padding: 50px 40px; color: #333333; font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.6;">
                             <table border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -43,22 +43,21 @@
                         </td>
                     </tr>
 
-                    <!-- FOOTER -->
+                    <!-- ФУТЕР -->
                     <tr>
                         <td align="center" bgcolor="#f9f9f9" style="padding: 40px 20px; border-top: 1px solid #eeeeee; border-radius: 0 0 8px 8px;">
                             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
                                 <tr>
                                     <td align="center" style="color: #888888; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.5;">
-                                        <p style="margin: 0 0 10px 0;">© {{ company_name }}. All rights reserved.</p>
+                                        <p style="margin: 0 0 10px 0;">© {{ current_year | default('2024') }} {{ site_name }}. Alle Rechte vorbehalten.</p>
                                         <p style="margin: 0 0 20px 0;">
-                                            <a href="{{ site_url }}" style="color: #2c3e50; text-decoration: none; font-weight: bold;">Website</a>
-                                            {% if contact_form_url and contact_form_url != '#' %}
-                                            &nbsp;|&nbsp;
-                                            <a href="{{ contact_form_url }}" style="color: #2c3e50; text-decoration: none; font-weight: bold;">Contact</a>
-                                            {% endif %}
+                                            <a href="{{ site_url }}/de/" style="color: #003831; text-decoration: none; font-weight: bold;">Website</a> &nbsp;|&nbsp;
+                                            <a href="{{ site_url }}/de/impressum/" style="color: #003831; text-decoration: none; font-weight: bold;">Impressum</a> &nbsp;|&nbsp;
+                                            <a href="{{ site_url }}/de/datenschutz/" style="color: #003831; text-decoration: none; font-weight: bold;">Datenschutz</a>
                                         </p>
                                         <p style="margin: 0; color: #a0a0a0; font-style: italic;">
-                                            This is an automated email. Please do not reply directly to this message.
+                                            Dies ist eine automatisch generierte E-Mail. Bitte antworten Sie nicht direkt auf diese Nachricht.<br>
+                                            Bei Fragen nutzen Sie bitte unser <a href="{{ site_url }}/de/contacts/" style="color: #003831; text-decoration: underline;">Kontaktformular</a>.
                                         </p>
                                     </td>
                                 </tr>

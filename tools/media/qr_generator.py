@@ -65,13 +65,13 @@ def _generate_qr(
 
     # Ресайз до точного размера
     if img.size[0] != size:
-        img = img.resize((size, size), Image.LANCZOS)
+        img = img.resize((size, size), Image.Resampling.LANCZOS)
 
     # Логотип
     if logo_path and Path(logo_path).exists():
         logo = Image.open(logo_path).convert("RGBA")
         logo_size = size // 4
-        logo = logo.resize((logo_size, logo_size), Image.LANCZOS)
+        logo = logo.resize((logo_size, logo_size), Image.Resampling.LANCZOS)
 
         # Белый круг под лого
         mask = Image.new("RGBA", (logo_size + 20, logo_size + 20), (0, 0, 0, 0))
@@ -272,7 +272,7 @@ class QRGeneratorApp:
 
             # Resize for preview (max 400x400)
             preview = self.current_qr.copy()
-            preview.thumbnail((400, 400), Image.LANCZOS)
+            preview.thumbnail((400, 400), Image.Resampling.LANCZOS)
 
             # Checkerboard background for transparent
             if params["transparent"]:
@@ -428,12 +428,12 @@ class QRGeneratorApp:
                     img = Image.open(buf).convert("RGBA")
 
                     if img.size[0] != _size:
-                        img = img.resize((_size, _size), Image.LANCZOS)
+                        img = img.resize((_size, _size), Image.Resampling.LANCZOS)
 
                     if logo:
                         logo_img = Image.open(logo).convert("RGBA")
                         logo_s = _size // 4
-                        logo_img = logo_img.resize((logo_s, logo_s), Image.LANCZOS)
+                        logo_img = logo_img.resize((logo_s, logo_s), Image.Resampling.LANCZOS)
 
                         mask = Image.new("RGBA", (logo_s + 20, logo_s + 20), (0, 0, 0, 0))
                         draw = ImageDraw.Draw(mask)

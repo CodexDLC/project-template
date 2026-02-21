@@ -2,7 +2,8 @@
 welcome-user =
     👋 <b>Hallo, { $name }!</b>
 
-    Welcome! Click the button below to get started.
+    Willkommen beim <b>Lily Website Bot</b>.
+    Bereit zu erkunden? Klicken Sie auf die Schaltfläche unten, um zu starten.
 
 welcome-admin =
     👋 <b>Hallo, Administrator { $name }!</b>

@@ -1,40 +1,53 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, cast
-
-from aiogram_i18n import I18nContext
-
-if TYPE_CHECKING:
-    from src.shared.schemas.stream.notification import NotificationPayload
+from .dto import BookingNotificationPayload
+from .texts import NotificationsTexts
 
 
-def format_notification_message(payload: NotificationPayload) -> str:
+def format_new_booking(
+    payload: BookingNotificationPayload, email_status: str = "none", twilio_status: str = "none"
+) -> str:
     """
-    Форматирует сообщение уведомления на основе данных из Redis Stream.
-    Использует i18n для локализации.
+    Формирует текст уведомления о новой брони с учетом статусов отправки.
     """
-    i18n = cast("I18nContext", I18nContext.get_current())
-    lines = []
+    title = NotificationsTexts.NEW_BOOKING_TITLE.format(client_name=payload.client_name)
 
-    # Title / Event Type
-    if payload.event_type == "system":
-        lines.append(i18n.notifications.system.event())
-    elif payload.event_type == "user":
-        lines.append(i18n.notifications.user.event())
+    if payload.visits_count == 0:
+        visits_info = "Новый клиент 🆕"
     else:
-        lines.append(i18n.notifications.new.event())
+        visits_info = f"Постоянный клиент ({payload.visits_count + 1}-й визит) ⭐"
 
-    # Entity ID
-    if payload.entity_id is not None:
-        lines.append(i18n.notifications.entity.id(entity_id=payload.entity_id))
+    client_notes = payload.client_notes if payload.client_notes else "—"
+    price_str = f"{payload.price:g}"
 
-    # Description
-    if payload.description:
-        lines.append(i18n.notifications.event.description(description=payload.description))
+    promo_info = ""
+    if payload.active_promo_title:
+        promo_info = f"🎯 <b>Промо:</b> {payload.active_promo_title}\n"
 
-    # TODO: Add formatting for your domain-specific fields from payload.extra
-    # Example:
-    #   if payload.extra.get("amount"):
-    #       lines.append(f"Amount: {payload.extra['amount']}")
+    details = NotificationsTexts.BOOKING_DETAILS.format(
+        id=payload.id,
+        client_name=payload.client_name,
+        client_phone=payload.client_phone,
+        visits_info=visits_info,
+        service_name=payload.service_name,
+        datetime=payload.datetime,
+        master_name=payload.master_name,
+        price=price_str,
+        client_notes=client_notes,
+        promo_info=promo_info,
+    )
 
-    return "\n".join(lines)
+    # Добавляем блок статусов, если они не "none"
+    status_block = ""
+    if email_status != "none" or twilio_status != "none":
+        e_icon = NotificationsTexts.STATUS_ICONS.get(email_status, "❓")
+        t_icon = NotificationsTexts.STATUS_ICONS.get(twilio_status, "❓")
+        status_block = "\n" + NotificationsTexts.NOTIFICATION_STATUSES.format(email_status=e_icon, twilio_status=t_icon)
+
+    return f"{title}\n\n{details}{status_block}"
+
+
+def format_contact_preview() -> str:
+    """
+    Формирует короткий текст превью контактной заявки.
+    Полный текст — из Redis-кеша при нажатии «Прочитать».
+    """
+    return NotificationsTexts.CONTACT_PREVIEW_TEXT

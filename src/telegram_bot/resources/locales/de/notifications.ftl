@@ -2,17 +2,11 @@
 notifications-title = 👋 <b>Benachrichtigungen</b>
 notifications-description = Dies ist der Startbildschirm der Benachrichtigungsfunktion.
 
-# New Event Notification
-# TODO: Replace with your domain event label
-notifications-new-event = 📋 <b>Neues Ereignis</b>
-notifications-entity-id = 🆔 <b>ID:</b> #{ $entity_id }
-notifications-event-title = <b>{ $title }</b>
-notifications-event-description = { $description }
-
 # Reject Reasons (Buttons)
-# TODO: Add your domain-specific rejection reasons
-notifications-reason-busy = Nicht verfügbar
-notifications-reason-other = Anderer Grund
+notifications-reason-busy = Master belegt / Keine Zeit
+notifications-reason-ill = Master ist krank
+notifications-reason-materials = Keine Materialien
+notifications-reason-blacklist = Kunde auf der Blacklist
 
 # Statuses
 notifications-status-approved = ✅ ANFRAGE BESTÄTIGT
@@ -25,8 +19,7 @@ notifications-alert-rejected = Anfrage abgelehnt
 notifications-alert-cancelled = Abgebrochen
 notifications-alert-deleted = Nachricht gelöscht
 notifications-error-api = ⚠️ Server-Verbindungsfehler
+notifications-error-contact-notfound = ⚠️ <b>Anfragetext nicht gefunden (veraltet).</b>{"\n\n"}Bitte suchen Sie in der Admin-Konsole danach.
 
 # Buttons
 notifications-btn-delete = 🗑 Aus Feed löschen
-notifications-btn-approve = ✅ Bestätigen
-notifications-btn-reject = ❌ Ablehnen

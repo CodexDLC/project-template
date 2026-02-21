@@ -1,28 +1,20 @@
 class NotificationKeys:
     """
-    Redis key definitions for the notifications feature.
-    TODO: Change PREFIX to match your domain if needed.
+    Ключи для Redis, используемые в фиче уведомлений.
     """
 
-    PREFIX = "notification"  # TODO: Change prefix to match your domain
-
-    @classmethod
-    def get_cache_key(cls, entity_id: int | str) -> str:
-        """
-        Key for temporary storage of entity data (JSON).
-        Example: notification:cache:123
-        """
-        return f"{cls.PREFIX}:cache:{entity_id}"
-
-    @classmethod
-    def get_pending_key(cls, entity_id: int | str) -> str:
-        """
-        Key for pending notification state.
-        Example: notification:pending:123
-        """
-        return f"{cls.PREFIX}:pending:{entity_id}"
-
-    # Backward-compatible alias
     @staticmethod
     def get_appointment_cache_key(appointment_id: int | str) -> str:
-        return NotificationKeys.get_cache_key(appointment_id)
+        """
+        Ключ для временного хранения данных заявки (JSON).
+        Пример: notifications:cache:123
+        """
+        return f"notifications:cache:{appointment_id}"
+
+    @staticmethod
+    def get_contact_cache_key(request_id: int | str) -> str:
+        """
+        Ключ для временного хранения данных контактной заявки.
+        Пример: notifications:contact_cache:1
+        """
+        return f"notifications:contact_cache:{request_id}"

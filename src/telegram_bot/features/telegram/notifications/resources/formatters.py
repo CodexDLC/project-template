@@ -12,21 +12,21 @@ class NotificationsFormatter:
         return f"{NotificationsTexts.title()}\n\n{NotificationsTexts.description()}"
 
     def prepare_email_data(
-        self, appointment_data: dict[str, Any], status: str, reason_text: str | None = None
+        self, appointment_data: dict[str, Any], status: str, reason_text: str | None = None, site_name: str = "Our Team"
     ) -> dict[str, Any]:
         """
         Формирует плоский словарь данных для Email-шаблона.
         """
         if status == "confirmed":
             email_tag = NotificationsTexts.EMAIL_CONFIRM_TAG
-            email_subject = NotificationsTexts.EMAIL_CONFIRM_SUBJECT
+            email_subject = NotificationsTexts.EMAIL_CONFIRM_SUBJECT.format(site_name=site_name)
             email_body = NotificationsTexts.EMAIL_CONFIRM_BODY
         else:
             email_tag = NotificationsTexts.EMAIL_CANCEL_TAG
-            email_subject = NotificationsTexts.EMAIL_CANCEL_SUBJECT
+            email_subject = NotificationsTexts.EMAIL_CANCEL_SUBJECT.format(site_name=site_name)
             email_body = NotificationsTexts.EMAIL_CANCEL_BODY
 
-        first_name = appointment_data.get("first_name", "Kunde")
+        first_name = appointment_data.get("first_name", "Customer")
         last_name = appointment_data.get("last_name", "")
         visits_count = appointment_data.get("visits_count", 0)
         greeting = NotificationsTexts.get_email_greeting(first_name, last_name, visits_count)
@@ -46,4 +46,5 @@ class NotificationsFormatter:
             "duration_minutes": appointment_data.get("duration_minutes", 30),
             "cancellation_reason": reason_text,
             "status": status,
+            "site_name": site_name,
         }

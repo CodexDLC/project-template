@@ -6,48 +6,95 @@ from src.shared.core.constants import RedisStreams
 
 if TYPE_CHECKING:
     from src.shared.core.manager_redis.manager import StreamManager
+    from src.shared.core.redis_service import RedisService
 
 
-async def send_domain_event_task(ctx: dict[str, Any], event_data: dict[str, Any], admin_id: int | None = None) -> None:
+async def send_booking_notification_task(ctx: dict[str, Any], appointment_id: int, admin_id: int | None = None) -> None:
     """
-    Пример задачи: отправка доменного события в Redis Stream (для Telegram Bot).
-
-    Используется когда Backend хочет уведомить Bot о каком-либо событии.
-    Bot слушает стрим RedisStreams.BotEvents.NAME и обрабатывает события.
-
-    TODO: Переименуй функцию и замени "example_event" на тип события своего домена.
-    TODO: Обнови task_aggregator.py если переименовал функцию.
+    Задача для отправки уведомления о новой записи.
+    Теперь берет данные из Redis-кеша, подготовленного Django.
     """
-    log.info(f"Task: send_domain_event_task | id={event_data.get('id')}")
+    log.info(f"Task: send_booking_notification_task | appointment_id={appointment_id}")
 
-    # Use cast to satisfy Mypy
     stream_manager = cast("StreamManager", ctx.get("stream_manager"))
-    if not stream_manager:
-        log.error("StreamManager not found in context. Cannot send event.")
+    redis_service = cast("RedisService", ctx.get("redis_service"))
+
+    if not stream_manager or not redis_service:
+        log.error("StreamManager or RedisService not found in context.")
         return
 
-    event_payload = event_data.copy()
-    # TODO: Replace "example_event" with your domain event type
-    event_payload["type"] = "example_event"
+    # Fetch data from Redis
+    cache_key = f"notifications:cache:{appointment_id}"
+    raw_data = await redis_service.get_value(cache_key)
+
+    if not raw_data:
+        log.warning(f"No cache found for appointment {appointment_id}. Skipping notification.")
+        return
 
     try:
+        import json
+
+        payload = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+
+        event_data = payload.copy()
+        event_data["type"] = "new_appointment"
+
         stream_name = RedisStreams.BotEvents.NAME
-        message_id = await stream_manager.add_event(stream_name, event_payload)
+        message_id = await stream_manager.add_event(stream_name, event_data)
 
         if message_id:
-            log.info(f"Event sent to stream '{stream_name}' | msg_id={message_id}")
+            log.info(f"Booking notification sent to stream '{stream_name}' | msg_id={message_id}")
         else:
-            log.error(f"Failed to send event to stream '{stream_name}'")
+            log.error(f"Failed to send booking notification to stream '{stream_name}'")
 
     except Exception as e:
-        log.exception(f"Error sending domain event task: {e}")
+        log.exception(f"Error sending booking notification task: {e}")
+
+
+async def send_contact_notification_task(ctx: dict[str, Any], request_id: int) -> None:
+    """
+    Задача для отправки уведомления о новой заявке из контактной формы.
+    Теперь берет данные из Redis-кеша, подготовленного Django.
+    """
+    log.info(f"Task: send_contact_notification_task | request_id={request_id}")
+
+    stream_manager = cast("StreamManager", ctx.get("stream_manager"))
+    redis_service = cast("RedisService", ctx.get("redis_service"))
+
+    if not stream_manager or not redis_service:
+        log.error("StreamManager or RedisService not found in context.")
+        return
+
+    # Fetch data from Redis
+    cache_key = f"notifications:contact_cache:{request_id}"
+    raw_data = await redis_service.get_value(cache_key)
+
+    if not raw_data:
+        log.warning(f"No cache found for contact request {request_id}. Skipping notification.")
+        return
+
+    try:
+        import json
+
+        payload = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+
+        event_data = {"type": "new_contact_request", "request_id": str(request_id), **payload}
+
+        stream_name = RedisStreams.BotEvents.NAME
+        message_id = await stream_manager.add_event(stream_name, event_data)
+
+        if message_id:
+            log.info(f"Contact notification sent to stream '{stream_name}' | msg_id={message_id}")
+        else:
+            log.error(f"Failed to send contact notification to stream '{stream_name}'")
+
+    except Exception as e:
+        log.exception(f"Error sending contact notification task: {e}")
 
 
 async def requeue_event_task(ctx: dict[str, Any], event_data: dict[str, Any]) -> None:
     """
     Универсальная задача для возврата события в Redis Stream (Retry mechanism).
-    Используется при сбоях обработки — возвращает событие в очередь для повторной попытки.
-    Максимум 5 попыток (счётчик _retries в payload).
     """
     log.info(f"Task: requeue_event_task | type={event_data.get('type')}")
 

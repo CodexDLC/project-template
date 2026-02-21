@@ -87,7 +87,7 @@ async def build_bot(settings: BotSettings, redis_client: Redis) -> tuple[Bot, Di
     i18n_middleware = I18nMiddleware(
         core=FluentRuntimeCore(path=locales_path),
         manager=FSMContextI18nManager(),
-        default_locale="de",
+        default_locale=settings.DEFAULT_LOCALE,
     )
     i18n_middleware.setup(dp)
 

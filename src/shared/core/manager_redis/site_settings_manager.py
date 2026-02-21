@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from ...schemas.site_settings import SiteSettingsSchema
@@ -46,13 +47,22 @@ class SiteSettingsManager:
 
     def _parse_settings(self, data: dict[str, str]) -> dict[str, Any]:
         """
-        Преобразует строковые значения из Redis в Python-типы.
+        Преобразует строковые значения из Redis в Python-типы (bool, int, dict).
         """
         result: dict[str, Any] = {}
         for k, v in data.items():
-            # Логические значения
+            # Boolean
             if v.lower() in ("true", "false"):
                 result[k] = v.lower() == "true"
+            # Integer
+            elif v.isdigit() or (v.startswith("-") and v[1:].isdigit()):
+                result[k] = int(v)
+            # JSON (dict/list)
+            elif v.startswith(("{", "[")):
+                try:
+                    result[k] = json.loads(v)
+                except json.JSONDecodeError:
+                    result[k] = v
             else:
                 result[k] = v
         return result

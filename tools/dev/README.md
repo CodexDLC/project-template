@@ -1,45 +1,23 @@
-# tools/dev/
+# 🛠 Development & Validation Tools
 
-Инструменты разработки: проверка качества кода и генерация документации.
+This directory contains scripts to ensure code quality and environment consistency.
 
-## check.py
+## 🚀 `check.py`
+The primary quality gate for the project. It automates linting, type checking, unit testing, and Docker integration testing.
 
-Главный quality gate проекта. Запускается перед каждым push.
+### Usage
+- **Full Check**: `python tools/dev/check.py`
+- **Interactive Menu**: `python tools/dev/check.py --settings`
 
-```bash
-python tools/dev/check.py           # полная проверка
-python tools/dev/check.py --settings  # интерактивное меню
-```
+### Features
+1. **Linters**: Runs `pre-commit` hooks (trailing whitespace, ruff, etc.).
+2. **Type Checking**: Full `mypy` validation with cache clearing.
+3. **Unit Tests**: Executes `pytest` with local environment settings.
+4. **Docker Validation**:
+   - Builds images from scratch.
+   - Starts the full stack.
+   - Runs Django internal checks and migration validation inside the container.
+   - Automatically cleans up resources.
 
-**Что проверяет:**
-
-| Шаг | Инструмент | Что делает |
-|-----|-----------|-----------|
-| 1. Lint | pre-commit + ruff | trailing whitespace, yaml, форматирование, импорты |
-| 2. Types | mypy | полная проверка типов (с очисткой кеша) |
-| 3. Tests | pytest | юнит-тесты (`-m unit`) |
-| 4. Docker | docker-compose | сборка образов, запуск стека, Django checks, проверка миграций |
-
-**Интерактивное меню** (`--settings`):
-```
-1. Fast Check (Lint only)
-2. Type Check (Mypy)
-3. Run Unit Tests
-4. Full Docker Validation
-5. Run Everything
-```
-
-Docker-валидация запускается с изолированным project name (`-p`) чтобы не конфликтовать с dev-стеком. Автоматически чистит контейнеры и volumes после завершения.
-
----
-
-## generate_project_tree.py
-
-Генерирует визуальное дерево структуры проекта в файл `project_structure.txt`.
-
-```bash
-python tools/dev/generate_project_tree.py
-```
-
-Предложит выбрать: весь проект или конкретную папку (src/, tools/, deploy/ и т.д.).
-Игнорирует `.git`, `__pycache__`, `.venv`, `.pyc` и бинарники.
+## 🌳 `generate_project_tree.py`
+Generates a visual representation of the project structure for documentation purposes.
