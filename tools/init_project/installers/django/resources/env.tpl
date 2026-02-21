@@ -1,19 +1,45 @@
 # ═══════════════════════════════════════════
-# {{PROJECT_NAME}} — Development Environment
+# {{PROJECT_NAME}} — Local Environment Variables (.env)
 # ═══════════════════════════════════════════
 
-# Django
-DJANGO_SETTINGS_MODULE=core.settings.dev
-SECRET_KEY=django-insecure-change-me-in-production-{{PROJECT_NAME}}
 DEBUG=True
+SECRET_KEY=development-only-key-replace-me
 ALLOWED_HOSTS=localhost,127.0.0.1
+DOMAIN_NAME=localhost
+SITE_BASE_URL=http://localhost:8000/
+DJANGO_SETTINGS_MODULE=core.settings.dev
 
-# Database (dev: sqlite, prod: postgres)
-# DATABASE_URL=postgres://user:pass@localhost:5432/{{PROJECT_NAME}}
+DATABASE_URL=postgres://postgres:password@localhost:5432/{{PROJECT_NAME}}
 
-# Redis (optional, for cache/celery)
-# REDIS_URL=redis://localhost:6379/0
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
-# Internationalization
-LANGUAGE_CODE=en-us
-TIME_ZONE=UTC
+BOT_TOKEN=
+SUPERUSER_IDS=
+OWNER_IDS=
+BOT_DATA_MODE=api
+BACKEND_API_URL=http://localhost:8000
+BOT_API_KEY=
+BACKEND_API_KEY=
+
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+SENDGRID_API_KEY=
+
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=info@{{PROJECT_NAME}}.local
+SMTP_USE_TLS=False
+SMTP_USE_SSL=False
+
+GCLOUD_HOSTED_METRICS_URL=
+GCLOUD_HOSTED_METRICS_ID=
+GCLOUD_HOSTED_LOGS_URL=
+GCLOUD_HOSTED_LOGS_ID=
+GCLOUD_RW_API_KEY=
+
+LOG_LEVEL=DEBUG

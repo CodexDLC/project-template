@@ -28,34 +28,50 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-CHANGE-ME")
 
 DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
-]
+# --- Smart ALLOWED_HOSTS ---
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "backend"]
+
+env_hosts = os.environ.get("ALLOWED_HOSTS", "")
+if env_hosts:
+    ALLOWED_HOSTS.extend([h.strip() for h in env_hosts.split(",") if h.strip()])
 
 # ═══════════════════════════════════════════
 # Application definition
 # ═══════════════════════════════════════════
 
 INSTALLED_APPS = [
-    # ── Translation (must be before admin) ──
+    # ── Unfold Admin (must be before django.contrib.admin) ──
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
+    "unfold.contrib.import_export",
+
+    # ── Monitoring ──
+    "django_prometheus",
+
+    # ── Translation ──
     "modeltranslation",
-    # ── Django ──
+
+    # ── Django Core ──
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # ── Features ──
+
+    # ── Shared Features ──
+    "core",
     "features.main",
     "features.system",
-    # ── API ──
+
+    # ── Third Party ──
     "ninja",
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -63,6 +79,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -84,6 +102,47 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core.wsgi.application"
+
+# ═══════════════════════════════════════════
+# Unfold Configuration
+# ═══════════════════════════════════════════
+
+UNFOLD = {
+    "SITE_TITLE": "{{PROJECT_NAME}} Admin",
+    "SITE_HEADER": "{{PROJECT_NAME}}",
+    "SITE_SYMBOL": "speed",  # Google Material Symbol name
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+    },
+}
+
+# ═══════════════════════════════════════════
+# Redis & Cache
+# ═══════════════════════════════════════════
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", None)
+
+REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+if REDIS_PASSWORD:
+    from urllib.parse import quote_plus
+    encoded_pass = quote_plus(REDIS_PASSWORD.strip("'\""))
+    REDIS_URL = f"redis://:{encoded_pass}@{REDIS_HOST}:{REDIS_PORT}/0"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 # ═══════════════════════════════════════════
 # Database
@@ -112,14 +171,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # ═══════════════════════════════════════════
 
-LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en-us")
+LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en")
 TIME_ZONE = os.environ.get("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
 
 # Model Translation (django-modeltranslation)
 MODELTRANSLATION_DEFAULT_LANGUAGE = LANGUAGE_CODE.split("-")[0]
-MODELTRANSLATION_LANGUAGES = ("en", "ru")
+MODELTRANSLATION_LANGUAGES = ("en", "de", "ru", "uk")
 
 # ═══════════════════════════════════════════
 # Static files

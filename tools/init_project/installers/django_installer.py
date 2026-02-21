@@ -52,7 +52,7 @@ class DjangoInstaller(BaseInstaller):
         self._create_feature_system(backend_dir, ctx.project_name)
 
         # ── 4. Static / Templates / Locale ──
-        self._create_static_dirs(backend_dir)
+        self._create_static_dirs(backend_dir, ctx.project_name)
         self._create_templates(backend_dir, ctx.project_name)
         self._create_locale(backend_dir)
 
@@ -161,41 +161,74 @@ class DjangoInstaller(BaseInstaller):
         print("    ✅ features/main/ (views/, selectors/, urls)")
 
     def _create_feature_system(self, backend_dir: Path, project_name: str) -> None:
-        """Создаёт features/system/ — сервисные модели (mixins, tags и т.д.)."""
+        """Создаёт features/system/ — полноценное ядро проекта (SiteSettings, RedisSync, Commands, etc.)."""
         feat_dir = backend_dir / "features" / "system"
         models_dir = feat_dir / "models"
+        redis_dir = feat_dir / "redis_managers"
         migrations_dir = feat_dir / "migrations"
 
-        for d in [models_dir, migrations_dir]:
+        # New: Management & Fixtures
+        mgmt_dir = feat_dir / "management" / "commands"
+        fixtures_dir = feat_dir / "fixtures"
+
+        for d in [models_dir, redis_dir, migrations_dir, mgmt_dir, fixtures_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-        tpl = RESOURCES_DIR / "feature_tpl"
+        tpl_system = RESOURCES_DIR / "system_tpl"
+        tpl_base = RESOURCES_DIR / "feature_tpl"
 
-        # __init__.py
-        self._render(tpl / "__init__.py.tpl", feat_dir / "__init__.py", project_name)
-
-        # apps.py
+        # 1. Base files
+        self._render(tpl_base / "__init__.py.tpl", feat_dir / "__init__.py", project_name)
         self._render_feature_apps(
-            tpl / "apps.py.tpl",
+            tpl_base / "apps.py.tpl",
             feat_dir / "apps.py",
             app_name="system",
             app_class="System",
-            app_verbose="System",
+            app_verbose="System Core",
+        )
+        self._render(tpl_system / "admin.py.tpl", feat_dir / "admin.py", project_name)
+        self._render(tpl_system / "translation.py.tpl", feat_dir / "translation.py", project_name)
+        self._render(tpl_system / "context_processors.py.tpl", feat_dir / "context_processors.py", project_name)
+
+        # 2. Models
+        self._render(tpl_system / "models" / "__init__.py.tpl", models_dir / "__init__.py", project_name)
+        self._render(tpl_system / "models" / "site_settings.py.tpl", models_dir / "site_settings.py", project_name)
+        self._render(
+            tpl_system / "models" / "static_translation.py.tpl", models_dir / "static_translation.py", project_name
+        )
+        self._render(tpl_system / "models" / "mixins.py.tpl", models_dir / "mixins.py", project_name)
+
+        # 3. Redis Managers
+        self._render(
+            tpl_system / "redis_managers" / "site_settings_manager.py.tpl",
+            redis_dir / "site_settings_manager.py",
+            project_name,
         )
 
-        # admin.py, tests.py, translation.py
-        self._render(tpl / "admin.py.tpl", feat_dir / "admin.py", project_name)
-        self._render(tpl / "tests.py.tpl", feat_dir / "tests.py", project_name)
-        self._render(tpl / "translation.py.tpl", feat_dir / "translation.py", project_name)
+        # 4. Management & Fixtures
+        (feat_dir / "management" / "__init__.py").write_text("", encoding="utf-8")
+        (feat_dir / "management" / "commands" / "__init__.py").write_text("", encoding="utf-8")
 
-        # models/__init__.py + models/mixins.py
-        (models_dir / "__init__.py").write_text(
-            "from .mixins import TimestampMixin  # noqa: F401\n",
-            encoding="utf-8",
+        self._render(
+            tpl_system / "management" / "commands" / "update_site_settings.py.tpl",
+            mgmt_dir / "update_site_settings.py",
+            project_name,
         )
-        self._render(tpl / "mixins.py.tpl", models_dir / "mixins.py", project_name)
+        self._render(
+            tpl_system / "management" / "commands" / "update_static_translations.py.tpl",
+            mgmt_dir / "update_static_translations.py",
+            project_name,
+        )
+        self._render(
+            tpl_system / "management" / "commands" / "update_all_content.py.tpl",
+            mgmt_dir / "update_all_content.py",
+            project_name,
+        )
+        self._render(
+            tpl_system / "fixtures" / "site_settings.json.tpl", fixtures_dir / "site_settings.json", project_name
+        )
 
-        # migrations/__init__.py
+        # 5. Cleanup/Init
         (migrations_dir / "__init__.py").write_text("", encoding="utf-8")
 
         # features/__init__.py
@@ -203,29 +236,36 @@ class DjangoInstaller(BaseInstaller):
         if not features_init.exists():
             features_init.write_text("", encoding="utf-8")
 
-        print("    ✅ features/system/ (models/mixins, service layer)")
+        print("    ✅ features/system/ (SiteSettings + RedisSync + Commands + Fixtures)")
 
     # ─────────────────────────────────────────
     # Static / Templates / Locale
     # ─────────────────────────────────────────
 
-    def _create_static_dirs(self, backend_dir: Path) -> None:
-        """Создаёт static/css, static/js, static/img."""
+    def _create_static_dirs(self, backend_dir: Path, project_name: str) -> None:
+        """Создаёт static/ структуру с поддержкой CSS компилятора."""
+        static_dir = backend_dir / "static"
+        css_dir = static_dir / "css"
+
         for sub in ["css", "js", "img"]:
-            d = backend_dir / "static" / sub
-            d.mkdir(parents=True, exist_ok=True)
+            (static_dir / sub).mkdir(parents=True, exist_ok=True)
 
-        # Минимальный base.css
-        css_file = backend_dir / "static" / "css" / "base.css"
-        if not css_file.exists():
-            css_file.write_text(
-                "/* Base styles for the project */\n"
-                "*, *::before, *::after { box-sizing: border-box; }\n"
-                "body { margin: 0; font-family: system-ui, sans-serif; }\n",
-                encoding="utf-8",
-            )
+        tpl_css = RESOURCES_DIR / "static" / "css"
+        if tpl_css.exists():
+            # CSS инфраструктура
+            self._render(tpl_css / "base.css.tpl", css_dir / "base.css", project_name)
+            self._render(tpl_css / "tokens.css.tpl", css_dir / "tokens.css", project_name)
+            self._render(tpl_css / "layout.css.tpl", css_dir / "layout.css", project_name)
+            self._render(tpl_css / "components.css.tpl", css_dir / "components.css", project_name)
+            self._render(tpl_css / "compiler_config.json.tpl", css_dir / "compiler_config.json", project_name)
 
-        print("    ✅ static/ (css/, js/, img/)")
+            # Создаём пустой app.css чтобы Django не ругался при первом запуске
+            (css_dir / "app.css").write_text("/* Compiled CSS will appear here */\n", encoding="utf-8")
+        else:
+            # Fallback если шаблонов нет
+            (css_dir / "base.css").write_text("/* Base styles */\n", encoding="utf-8")
+
+        print("    ✅ static/ (css/ with compiler config, js/, img/)")
 
     def _create_templates(self, backend_dir: Path, project_name: str) -> None:
         """Создаёт templates/base.html и templates/home/home.html."""
@@ -258,14 +298,15 @@ class DjangoInstaller(BaseInstaller):
         # manage.py
         self._render(RESOURCES_DIR / "manage.py.tpl", backend_dir / "manage.py", project_name)
 
-        # .env + .env.example
+        # .env + .env.example + .env.production
         self._render(RESOURCES_DIR / "env.tpl", backend_dir / ".env", project_name)
         self._render(RESOURCES_DIR / "env.example.tpl", backend_dir / ".env.example", project_name)
+        self._render(RESOURCES_DIR / "env.production.tpl", backend_dir / ".env.production", project_name)
 
         # README.md
         self._render(RESOURCES_DIR / "README.md.tpl", backend_dir / "README.md", project_name)
 
-        print("    ✅ manage.py, .env, .env.example, README.md")
+        print("    ✅ manage.py, .env, .env.example, .env.production, README.md")
 
     # ─────────────────────────────────────────
     # Template rendering helpers

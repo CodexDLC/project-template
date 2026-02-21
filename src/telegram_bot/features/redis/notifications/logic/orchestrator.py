@@ -1,68 +1,43 @@
-from typing import Any
-
-from loguru import logger as log
+from typing import TYPE_CHECKING, Any
 
 from src.telegram_bot.core.config import BotSettings
-from src.telegram_bot.services.base import UnifiedViewDTO, ViewResultDTO
+from src.telegram_bot.services.base import UnifiedViewDTO
 
-from ..resources.dto import EventNotificationPayload
-from ..ui.ui import NotificationsUI
+from .booking_processor import BookingProcessor
+from .contact_processor import ContactProcessor
+
+if TYPE_CHECKING:
+    from src.telegram_bot.core.container import BotContainer
 
 
 class NotificationsOrchestrator:
     """
-    Оркестратор для фичи Notifications.
+    Оркестратор для фичи Notifications (Redis Stream events).
+    Тонкий маршрутизатор — делегирует работу процессорам.
     """
 
-    def __init__(self, settings: BotSettings):
+    def __init__(self, settings: BotSettings, container: "BotContainer"):
         self.settings = settings
-        self.ui = NotificationsUI()
+        self.container = container
+        self.booking = BookingProcessor(settings, container)
+        self.contact = ContactProcessor(settings, container)
+
+    # --- Booking ---
 
     def handle_notification(self, raw_payload: dict[str, Any]) -> UnifiedViewDTO:
-        """
-        Обрабатывает входящее уведомление, валидируя его через Pydantic.
-        """
-        log.debug(f"NotificationsOrchestrator | Validating payload: {raw_payload}")
+        """Делегирует обработку уведомления о бронировании."""
+        return self.booking.handle_notification(raw_payload)
 
-        try:
-            payload = EventNotificationPayload(**raw_payload)
-        except Exception as e:
-            log.error(f"NotificationsOrchestrator | Validation error: {e}")
-            return self.handle_failure(raw_payload, str(e))
-
-        target_chat_id = self.settings.telegram_admin_channel_id
-        message_thread_id = self.settings.telegram_notification_topic_id
-
-        # TODO: Map domain-specific fields to topics if needed
-        # Example:
-        #   if payload.extra.get("category") and self.settings.telegram_topics:
-        #       topic_id = self.settings.telegram_topics.get(payload.extra["category"])
-        #       if topic_id:
-        #           message_thread_id = topic_id
-
-        view_result = self.ui.render_notification(payload, topic_id=message_thread_id)
-
-        session_key = str(payload.entity_id) if payload.entity_id is not None else payload.event_type
-
-        return UnifiedViewDTO(
-            content=view_result,
-            chat_id=target_chat_id,
-            session_key=session_key,
-            mode="topic" if message_thread_id else "channel",
-            message_thread_id=message_thread_id,
-        )
+    async def handle_status_update(self, message_data: dict[str, Any]) -> UnifiedViewDTO | None:
+        """Делегирует обновление статуса бронирования."""
+        return await self.booking.handle_status_update(message_data)
 
     def handle_failure(self, raw_payload: dict[str, Any], error_msg: str) -> UnifiedViewDTO:
-        entity_id = raw_payload.get("entity_id", raw_payload.get("id", "???"))
-        text = (
-            f"⚠️ <b>Ошибка обработки уведомления</b>\n\n"
-            f"Поступило событие <b>#{entity_id}</b>, но бот не смог обработать данные.\n"
-            f"<b>Ошибка:</b> <code>{error_msg}</code>"
-        )
-        return UnifiedViewDTO(
-            content=ViewResultDTO(text=text),
-            chat_id=self.settings.telegram_admin_channel_id,
-            session_key=f"fail_{entity_id}",
-            mode="topic",
-            message_thread_id=self.settings.telegram_notification_topic_id,
-        )
+        """Делегирует обработку ошибки бронирования."""
+        return self.booking.handle_failure(raw_payload, error_msg)
+
+    # --- Contact ---
+
+    async def handle_contact_notification(self, raw_payload: dict[str, Any]) -> UnifiedViewDTO:
+        """Делегирует обработку уведомления из контактной формы."""
+        return await self.contact.handle_notification(raw_payload)

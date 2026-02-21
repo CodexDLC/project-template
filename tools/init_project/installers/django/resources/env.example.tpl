@@ -1,20 +1,41 @@
-# ═══════════════════════════════════════════
-# {{PROJECT_NAME}} — Environment Variables
-# ═══════════════════════════════════════════
-# Copy this file to .env and fill in the values
-
-# Django
-DJANGO_SETTINGS_MODULE=core.settings.dev
-SECRET_KEY=your-secret-key-here
 DEBUG=True
+SECRET_KEY=
 ALLOWED_HOSTS=localhost,127.0.0.1
+DOMAIN_NAME=localhost
+SITE_BASE_URL=http://localhost:8000/
+DJANGO_SETTINGS_MODULE=core.settings.dev
 
-# Database
-# DATABASE_URL=postgres://user:pass@localhost:5432/dbname
+DATABASE_URL=postgres://postgres:password@localhost:5432/{{PROJECT_NAME}}
 
-# Redis
-# REDIS_URL=redis://localhost:6379/0
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
-# Internationalization
-LANGUAGE_CODE=en-us
-TIME_ZONE=UTC
+BOT_TOKEN=
+SUPERUSER_IDS=
+OWNER_IDS=
+BOT_DATA_MODE=api
+BACKEND_API_URL=http://backend:8000
+BOT_API_KEY=
+BACKEND_API_KEY=
+
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+SENDGRID_API_KEY=
+
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=info@{{PROJECT_NAME}}.local
+SMTP_USE_TLS=False
+SMTP_USE_SSL=False
+
+GCLOUD_HOSTED_METRICS_URL=
+GCLOUD_HOSTED_METRICS_ID=
+GCLOUD_HOSTED_LOGS_URL=
+GCLOUD_HOSTED_LOGS_ID=
+GCLOUD_RW_API_KEY=
+
+LOG_LEVEL=DEBUG

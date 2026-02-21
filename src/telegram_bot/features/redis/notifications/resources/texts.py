@@ -1,39 +1,33 @@
-from typing import cast
-
-from aiogram_i18n import I18nContext
-
-
 class NotificationsTexts:
     """
-    Text wrappers for the Redis Notifications feature.
-    All user-visible texts are served via i18n FTL files.
-    FTL keys are in: resources/locales/{lang}/notifications.ftl
+    Текстовые шаблоны для уведомлений.
     """
 
-    @staticmethod
-    def get_i18n():
-        return cast("I18nContext", I18nContext.get_current())
+    NEW_BOOKING_TITLE = "✨ <b>Новая запись: {client_name}</b>"
 
-    @classmethod
-    def new_event(cls):
-        return cls.get_i18n().notifications.new.event()
+    BOOKING_DETAILS = (
+        "📅 <b>Когда:</b> {datetime}\n"
+        "✂️ <b>Услуга:</b> {service_name}\n"
+        "👤 <b>Мастер:</b> {master_name}\n"
+        "────────────────────\n"
+        "📊 <b>Визиты:</b> {visits_info}\n"
+        "💰 <b>Сумма:</b> {price} €\n"
+        "{promo_info}"
+        "📝 <b>Заметка:</b> {client_notes}\n\n"
+        "🆔 <b>ID записи:</b> #{id}"
+    )
 
-    @classmethod
-    def btn_approve(cls):
-        return cls.get_i18n().notifications.btn.approve()
+    # Статусы уведомлений клиенту
+    NOTIFICATION_STATUSES = "────────────────────\n📧 <b>Email:</b> {email_status}\n📱 <b>WhatsApp:</b> {twilio_status}"
 
-    @classmethod
-    def btn_reject(cls):
-        return cls.get_i18n().notifications.btn.reject()
+    STATUS_ICONS = {"waiting": "⏳", "sent": "✅", "success": "✅", "failed": "❌", "none": "—"}
 
-    @classmethod
-    def btn_delete(cls):
-        return cls.get_i18n().notifications.btn.delete()
+    BTN_APPROVE = "✅ Подтвердить"
+    BTN_REJECT = "❌ Отклонить"
 
-    @classmethod
-    def reason_busy(cls):
-        return cls.get_i18n().notifications.reason.busy()
+    # --- Contact Form ---
+    CONTACT_PREVIEW_TITLE = "📋 <b>Новая заявка с сайта</b>"
+    CONTACT_PREVIEW_TEXT = "📋 <b>Новая заявка с сайта</b>\n\nНажмите «Прочитать» для просмотра."
 
-    @classmethod
-    def reason_other(cls):
-        return cls.get_i18n().notifications.reason.other()
+    BTN_READ_CONTACT = "📖 Прочитать"
+    BTN_REPLY_CONTACT = "✉️ Ответить"

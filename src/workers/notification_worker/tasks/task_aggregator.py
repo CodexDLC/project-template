@@ -1,14 +1,16 @@
 from src.workers.core.tasks import CORE_FUNCTIONS
 
 from .email_tasks import send_email_task
-from .notification_tasks import requeue_event_task, send_domain_event_task
+from .notification_tasks import send_booking_notification_task, send_contact_notification_task
+from .twilio_tasks import send_appointment_notification, send_twilio_task
 
-# Агрегируем все задачи воркера.
-# ARQ регистрирует функции из этого списка — только они доступны для вызова через enqueue_job().
-# Добавляй свои задачи сюда по мере разработки проекта.
+# Здесь агрегируются задачи для воркера уведомлений
+# Мы объединяем специфичные задачи воркера с базовыми задачами из core (ретраи и т.д.)
 
 FUNCTIONS = [
-    send_domain_event_task,  # TODO: Replace with your domain tasks
+    send_booking_notification_task,
+    send_contact_notification_task,
     send_email_task,
-    requeue_event_task,
+    send_appointment_notification,
+    send_twilio_task,
 ] + CORE_FUNCTIONS

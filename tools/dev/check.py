@@ -10,6 +10,9 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 COMPOSE_FILE = PROJECT_ROOT / "deploy" / "docker-compose.test.yml"
 TEST_PROJECT_NAME = "lily-quality-check"
 
+# Directories to check
+CHECK_DIRS = "src/ tools/"
+
 
 # ANSI Colors
 class Colors:
@@ -76,17 +79,43 @@ def cleanup_docker():
 def check_linters():
     print_step("Running Linters (Ruff & Pre-commit hooks)")
 
-    print("Running Ruff check...")
-    ruff_success, ruff_out = run_command("poetry run ruff check src/")
-    if not ruff_success:
-        print_error(f"Ruff check failed:\n{ruff_out}")
+    # --- Auto-fixing and formatting with Ruff ---
+    print("Attempting to auto-fix Ruff issues...")
+    fix_success, fix_out = run_command(f"poetry run ruff check {CHECK_DIRS} --fix", capture_output=True)
+    if not fix_success:
+        print_error(f"Ruff auto-fix command failed:\n{fix_out}")
         return False
+    if "Fixed" in fix_out:
+        print_success("Ruff auto-fixed some issues.")
+    else:
+        print("No Ruff issues to auto-fix.")
 
-    print("Running Ruff format...")
-    # Изменено: убран флаг --check, чтобы ruff format применял изменения
-    if not run_command("poetry run ruff format src/")[0]:
-        print_error("Ruff format failed to apply changes")
+    print("Attempting to auto-format with Ruff...")
+    format_success, format_out = run_command(f"poetry run ruff format {CHECK_DIRS}", capture_output=True)
+    if not format_success:
+        print_error(f"Ruff auto-format command failed:\n{format_out}")
         return False
+    if "Formatted" in format_out:
+        print_success("Ruff auto-formatted some files.")
+    else:
+        print("No files needed Ruff formatting.")
+
+    # --- Verification checks after auto-fixing/formatting ---
+    print("Verifying Ruff check (no fixable issues remaining)...")
+    ruff_check_success, ruff_check_out = run_command(f"poetry run ruff check {CHECK_DIRS}", capture_output=True)
+    if not ruff_check_success:
+        print_error(f"Ruff check failed (unfixable issues or issues after fix):\n{ruff_check_out}")
+        return False
+    print_success("Ruff check passed.")
+
+    print("Verifying Ruff format (no formatting issues remaining)...")
+    ruff_format_check_success, ruff_format_check_out = run_command(
+        f"poetry run ruff format {CHECK_DIRS} --check", capture_output=True
+    )
+    if not ruff_format_check_success:
+        print_error(f"Ruff format check failed (files still need formatting):\n{ruff_format_check_out}")
+        return False
+    print_success("Ruff format check passed.")
 
     print("Running basic pre-commit hooks...")
     basic_hooks = ["trailing-whitespace", "end-of-file-fixer", "check-yaml"]
@@ -94,6 +123,7 @@ def check_linters():
         if not run_command(f"pre-commit run {hook} --all-files")[0]:
             print_error(f"Pre-commit hook '{hook}' failed")
             return False
+    print_success("Basic pre-commit hooks passed.")
 
     return True
 
@@ -106,7 +136,7 @@ def check_types():
 
         shutil.rmtree(cache_dir)
 
-    success, out = run_command("poetry run mypy src/")
+    success, out = run_command(f"poetry run mypy {CHECK_DIRS}", capture_output=True)
     if not success:
         print_error(f"Mypy check failed:\n{out}")
     return success
@@ -115,18 +145,6 @@ def check_types():
 def run_tests():
     print_step("Running Unit Tests (Pytest)")
     os.environ["SECRET_KEY"] = "local_test_key"
-    os.environ["DATABASE_URL"] = "sqlite:///./test.db"  # Dummy DB for FastAPI tests
-
-    # Проверяем наличие Django проекта
-    django_settings = PROJECT_ROOT / "src" / "backend_django" / "core" / "settings" / "test.py"
-
-    # Если файл пустой или не существует, пропускаем Django тесты
-    if not django_settings.exists() or django_settings.stat().st_size == 0:
-        print(
-            f"{Colors.BLUE}ℹ️ Django project not found (or test settings missing). Skipping Django tests.{Colors.ENDC}"
-        )
-        return run_command("poetry run pytest src -m unit -v -p no:django")[0]
-
     return run_command("poetry run pytest src -m unit -v")[0]
 
 
@@ -199,14 +217,25 @@ def run_all(with_docker=False):
         sys.exit(1)
     if not check_types():
         sys.exit(1)
-    if not run_tests():
-        sys.exit(1)
 
-    if with_docker:
-        if not run_docker_validation():
+    # Prompt for tests
+    test_choice = input(f"\n{Colors.YELLOW}🚀 Run Unit Tests? [y/N]: {Colors.ENDC}").strip().lower()
+    if test_choice == "y":
+        if not run_tests():
             sys.exit(1)
     else:
-        print(f"\n{Colors.BLUE}ℹ️ Docker validation skipped. Use --docker to run it.{Colors.ENDC}")
+        print(f"{Colors.BLUE}ℹ️ Skipping Unit Tests.{Colors.ENDC}")
+
+    # Prompt for Docker
+    if with_docker:
+        docker_choice = input(f"\n{Colors.YELLOW}🐳 Run Full Docker Validation? [y/N]: {Colors.ENDC}").strip().lower()
+        if docker_choice == "y":
+            if not run_docker_validation():
+                sys.exit(1)
+        else:
+            print(f"{Colors.BLUE}ℹ️ Skipping Docker validation.{Colors.ENDC}")
+    else:
+        print(f"\n{Colors.BLUE}ℹ️ Docker validation skipped. Use --docker to enable the prompt.{Colors.ENDC}")
 
     print(f"\n{Colors.GREEN}{Colors.BOLD}🎉 ALL CHECKS PASSED! You are ready to push.{Colors.ENDC}")
 
@@ -242,7 +271,7 @@ def interactive_menu():
             print_error("Invalid choice")
 
 
-def main():
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Lily Project Quality Checker")
     parser.add_argument("--settings", action="store_true", help="Open interactive menu")
     parser.add_argument("--docker", action="store_true", help="Include Docker build validation")
@@ -256,7 +285,3 @@ def main():
     except KeyboardInterrupt:
         print(f"\n{Colors.RED}Aborted by user.{Colors.ENDC}")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

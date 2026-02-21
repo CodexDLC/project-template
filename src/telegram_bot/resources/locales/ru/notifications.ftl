@@ -2,17 +2,11 @@
 notifications-title = 👋 <b>Уведомления</b>
 notifications-description = Это стартовый экран фичи уведомлений.
 
-# New Event Notification
-# TODO: Replace with your domain event label
-notifications-new-event = 📋 <b>Новое событие</b>
-notifications-entity-id = 🆔 <b>ID:</b> #{ $entity_id }
-notifications-event-title = <b>{ $title }</b>
-notifications-event-description = { $description }
-
 # Reject Reasons (Buttons)
-# TODO: Add your domain-specific rejection reasons
-notifications-reason-busy = Недоступно
-notifications-reason-other = Другая причина
+notifications-reason-busy = Мастер занят / Нет времени
+notifications-reason-ill = Мастер заболел
+notifications-reason-materials = Нет материалов
+notifications-reason-blacklist = Клиент в черном списке
 
 # Statuses
 notifications-status-approved = ✅ ЗАЯВКА ПОДТВЕРЖДЕНА
@@ -25,8 +19,7 @@ notifications-alert-rejected = Заявка отклонена
 notifications-alert-cancelled = Отменено
 notifications-alert-deleted = Сообщение удалено
 notifications-error-api = ⚠️ Ошибка связи с сервером
+notifications-error-contact-notfound = ⚠️ <b>Текст заявки не найден (устарел).</b>{"\n\n"}Попробуйте найти её в админ-панели.
 
 # Buttons
 notifications-btn-delete = 🗑 Удалить из ленты
-notifications-btn-approve = ✅ Подтвердить
-notifications-btn-reject = ❌ Отклонить

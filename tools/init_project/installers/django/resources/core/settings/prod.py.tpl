@@ -14,13 +14,35 @@ from .base import *  # noqa: F401,F403
 
 DEBUG = False
 
-# HTTPS
-SECURE_SSL_REDIRECT = True
+# Trust X-Forwarded-Proto header from Nginx
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Usually Nginx handles HTTPS redirect, so we keep this False
+# to avoid issues with internal Docker communication or LB.
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", "False").lower() == "true"
+
 SECURE_HSTS_SECONDS = 31_536_000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+LANGUAGE_COOKIE_SECURE = True
+
+# CSRF & Origins
+env_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if env_origins:
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in env_origins.split(",") if o.strip()]
+else:
+    # Fallback to domain name if provided
+    domain = os.environ.get("DOMAIN_NAME", "")
+    if domain:
+        CSRF_TRUSTED_ORIGINS = [f"https://{domain}", f"https://www.{domain}"]
+
+# Cookie domains (for cross-subdomain sessions)
+# cookie_domain = os.environ.get("COOKIE_DOMAIN", "")
+# if cookie_domain:
+#     CSRF_COOKIE_DOMAIN = cookie_domain
+#     SESSION_COOKIE_DOMAIN = cookie_domain
 
 # ═══════════════════════════════════════════
 # Database — PostgreSQL
